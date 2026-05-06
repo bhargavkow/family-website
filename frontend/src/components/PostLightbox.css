@@ -1,0 +1,121 @@
+.lightbox {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  max-width: 900px;
+  width: 100%;
+  max-height: 92vh;
+  animation: scaleIn 0.3s ease;
+}
+
+@media (min-width: 768px) {
+  .lightbox {
+    flex-direction: row;
+  }
+}
+
+.lightbox-media {
+  position: relative;
+  background: #000;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  max-height: 600px;
+}
+
+.lightbox-img,
+.lightbox-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  max-height: 600px;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition);
+}
+.lightbox-close:hover { background: rgba(0,0,0,0.9); }
+
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition);
+}
+.lightbox-nav:hover { background: rgba(0,0,0,0.85); }
+.lightbox-prev { left: 12px; }
+.lightbox-next { right: 12px; }
+
+.lightbox-info {
+  width: 100%;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+@media (min-width: 768px) {
+  .lightbox-info {
+    width: 280px;
+    flex-shrink: 0;
+  }
+}
+
+.lightbox-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.lightbox-caption {
+  font-size: 14px;
+  color: var(--color-text);
+  line-height: 1.6;
+  flex: 1;
+}
+
+.lightbox-actions {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.lightbox-like {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  color: var(--color-text-2);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 0;
+  transition: color var(--transition);
+}
+.lightbox-like:hover { color: var(--color-accent); }
+.lightbox-like.liked { color: var(--color-accent); }
