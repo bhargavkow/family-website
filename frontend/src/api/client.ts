@@ -6,6 +6,15 @@ const client = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Request interceptor — attach token from localStorage
+client.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // Response interceptor — handle 401 globally
 client.interceptors.response.use(
   (res) => res,

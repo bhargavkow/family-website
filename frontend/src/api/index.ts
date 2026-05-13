@@ -3,7 +3,7 @@ import type { User, Post, Message, Conversation } from '../types';
 
 // ─── Auth ────────────────────────────────────────────────
 export const apiLogin = (username: string, password: string) =>
-  client.post<{ user: User }>('/auth/login', { username, password });
+  client.post<{ user: User; token: string }>('/auth/login', { username, password });
 
 export const apiLogout = () => client.post('/auth/logout');
 

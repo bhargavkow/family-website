@@ -130,8 +130,18 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
               <input id="edit-username" className="input" value={username} onChange={e => setUsername(e.target.value.toLowerCase())} />
             </div>
             <div>
-              <label className="label" htmlFor="edit-bio">Bio</label>
-              <textarea id="edit-bio" className="input" rows={3} value={bio} onChange={e => setBio(e.target.value)} style={{ resize: 'vertical' }} />
+              <label className="label">Bio</label>
+              <textarea
+                className="input"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={3}
+                maxLength={300}
+                placeholder="Tell us about yourself..."
+              />
+              <div style={{ fontSize: 11, textAlign: 'right', color: 'var(--color-text-2)', marginTop: 4 }}>
+                {bio.length}/300
+              </div>
             </div>
           </div>
 

@@ -35,7 +35,7 @@ router.post('/login', async (req, res) => {
     });
 
     res.cookie('token', token, cookieOptions);
-    res.json({ user: user.toJSON() });
+    res.json({ user: user.toJSON(), token });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

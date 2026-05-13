@@ -26,12 +26,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (username: string, password: string) => {
     const res = await apiLogin(username, password);
-    setUser(res.data.user);
+    const { user, token } = res.data;
+    setUser(user);
+    if (token) localStorage.setItem('token', token);
   };
 
   const logout = async () => {
     await apiLogout();
     setUser(null);
+    localStorage.removeItem('token');
     toast.success('Logged out');
   };
 
