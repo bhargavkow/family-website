@@ -51,42 +51,36 @@ router.get('/:username', async (req, res) => {
 
 // PUT /api/members/:username — edit own profile
 router.put('/:username', auth, upload.single('profilePhoto'), async (req, res) => {
-  try {
-    if (req.user.username !== req.params.username.toLowerCase()) {
-      return res.status(403).json({ message: 'Cannot edit another user\'s profile' });
-    }
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const updates = {};
-    if (req.body.name) updates.name = req.body.name;
-    if (req.body.bio !== undefined) updates.bio = req.body.bio;
+    if (req.body.name) user.name = req.body.name.trim();
+    if (req.body.bio !== undefined) user.bio = req.body.bio;
 
-    // Allow username change with conflict check
     if (req.body.username) {
       const newUsername = req.body.username.toLowerCase().trim();
-      if (newUsername !== req.user.username) {
+      if (newUsername !== user.username) {
         const conflict = await User.findOne({ username: newUsername });
         if (conflict) return res.status(400).json({ message: 'Username already taken' });
-        updates.username = newUsername;
+        user.username = newUsername;
       }
     }
 
     if (req.file) {
-      // Delete old photo from Cloudinary
-      if (req.user.profilePhoto?.publicId) {
-        await cloudinary.uploader.destroy(req.user.profilePhoto.publicId);
+      if (user.profilePhoto?.publicId) {
+        await cloudinary.uploader.destroy(user.profilePhoto.publicId).catch(() => {});
       }
-      updates.profilePhoto = {
+      user.profilePhoto = {
         url: req.file.path,
         publicId: req.file.filename,
       };
     }
 
-    const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true })
-      .select('-password');
-
+    await user.save();
     await cache.del('members:all');
-    res.json({ user });
+    res.json({ user: user.toJSON() });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });

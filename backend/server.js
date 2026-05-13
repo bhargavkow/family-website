@@ -8,6 +8,9 @@ const connectDB = require('./src/config/db');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy for secure cookies on Render/Vercel
+app.set('trust proxy', 1);
+
 // Connect to MongoDB
 connectDB();
 

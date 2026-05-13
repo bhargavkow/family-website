@@ -7,8 +7,8 @@ const router = express.Router();
 
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
+  secure: true, // Always true for cross-site cookies over HTTPS
+  sameSite: 'none', // Required for cross-domain (Vercel to Render)
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
@@ -44,7 +44,7 @@ router.post('/login', async (req, res) => {
 
 // POST /api/auth/logout
 router.post('/logout', (req, res) => {
-  res.clearCookie('token');
+  res.clearCookie('token', cookieOptions);
   res.json({ message: 'Logged out' });
 });
 

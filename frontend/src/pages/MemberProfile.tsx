@@ -83,7 +83,10 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
       fd.append('name', name);
       fd.append('username', username);
       fd.append('bio', bio);
-      if (photo) fd.append('profilePhoto', photo);
+      if (photo) {
+        const optimized = await compressImage(photo);
+        fd.append('profilePhoto', optimized, photo.name);
+      }
       const res = await apiUpdateProfile(user.username, fd);
       onSave(res.data.user);
       toast.success('Profile updated!');
@@ -144,6 +147,37 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
   );
 }
 
+// ─── Utils ────────────────────────────────────────────────
+async function compressImage(file: File): Promise<File | Blob> {
+  if (file.type.startsWith('video/')) return file;
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.src = e.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const MAX_SIZE = 1200;
+        if (width > height && width > MAX_SIZE) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        } else if (height > MAX_SIZE) {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', 0.8);
+      };
+    };
+  });
+}
+
 // ─── Create Post Modal ────────────────────────────────────
 function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreated: (p: Post) => void }) {
   const [file, setFile] = useState<File | null>(null);
@@ -170,8 +204,9 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
     setLoading(true);
     setProgress(0);
     try {
+      const optimizedFile = await compressImage(file);
       const fd = new FormData();
-      fd.append('media', file);
+      fd.append('media', optimizedFile, file.name);
       fd.append('caption', caption);
       
       const res = await apiCreatePost(fd, {
