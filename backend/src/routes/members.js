@@ -51,6 +51,7 @@ router.get('/:username', async (req, res) => {
 
 // PUT /api/members/:username — edit own profile
 router.put('/:username', auth, upload.single('profilePhoto'), async (req, res) => {
+  try {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
