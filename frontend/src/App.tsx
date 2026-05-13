@@ -11,6 +11,7 @@ import Search from './pages/Search';
 import Messages from './pages/Messages';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
+import ProfileRedirect from './pages/ProfileRedirect';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="/members" element={<Members />} />
           <Route path="/members/:username" element={<MemberProfile />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/profile" element={<ProfileRedirect />} />
 
           <Route
             path="/search"
@@ -49,22 +51,8 @@ function App() {
             }
           />
 
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute adminOnly>
-                <Admin />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/*"
-            element={
-              <ProtectedRoute adminOnly>
-                <Admin />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/admin/*" element={<Admin />} />
         </Routes>
 
         <BottomNavbar />

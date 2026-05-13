@@ -77,15 +77,22 @@ export default function PostLightbox({ post, onClose, onPrev, onNext }: Props) {
           )}
 
           <div className="lightbox-actions">
-            <button
-              className={`lightbox-like ${liked ? 'liked' : ''}`}
-              onClick={handleLike}
-              id="lightbox-like-btn"
-            >
-              <Heart size={20} fill={liked ? 'currentColor' : 'none'} />
-              <span>{likeCount}</span>
-            </button>
+            {user && !user.isAdmin ? (
+              <button
+                className={`lightbox-like ${liked ? 'liked' : ''}`}
+                onClick={handleLike}
+                id="lightbox-like-btn"
+              >
+                <Heart size={20} fill={liked ? 'currentColor' : 'none'} />
+                <span>{likeCount}</span>
+              </button>
+            ) : (
+              <span style={{ fontSize: 13, color: 'var(--color-text-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Heart size={14} /> {likeCount} likes
+              </span>
+            )}
           </div>
+
         </div>
       </div>
     </div>

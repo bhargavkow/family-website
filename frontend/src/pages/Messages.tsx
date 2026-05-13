@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Send, Search, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -22,8 +22,6 @@ export default function Messages() {
   const { user: me } = useAuth();
   const { userId: routeUserId } = useParams<{ userId: string }>();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeUser, setActiveUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -33,7 +31,7 @@ export default function Messages() {
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [view, setView] = useState<'list' | 'chat'>('list');
   const bottomRef = useRef<HTMLDivElement>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval>>();
+  const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   // Load conversations
   const loadConversations = async () => {

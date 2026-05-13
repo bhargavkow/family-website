@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Users, Calendar, Globe, Heart } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
-import { apiGetMembers, apiGetFeed } from '../api';
+import { apiGetMembers } from '../api';
 import type { User } from '../types';
 import './Home.css';
 

@@ -447,7 +447,7 @@ input, textarea {
 ──────────────────────────────────────────────── */
 .section-title {
   font-family: var(--font-display);
-  font-size: clamp(28px, 5vw, 48px);
+  font-size: clamp(22px, 5vw, 48px);
   font-weight: 700;
   line-height: 1.2;
   background: var(--grad-primary);
@@ -459,6 +459,58 @@ input, textarea {
 
 .section-subtitle {
   color: var(--color-text-2);
-  font-size: 16px;
+  font-size: clamp(14px, 2vw, 16px);
   max-width: 500px;
 }
+
+/* ─────────────────────────────────────────────
+   Input — touch-friendly on mobile
+──────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .input { font-size: 16px; } /* prevents iOS zoom on focus */
+  .btn { padding: 10px 16px; }
+  .btn-lg { padding: 13px 22px; font-size: 15px; }
+  .modal { border-radius: var(--radius) var(--radius) 0 0; max-height: 95vh; }
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal-body { padding: 20px 16px; }
+  .modal-header { padding: 16px; }
+}
+
+/* ─────────────────────────────────────────────
+   Grid Layouts — responsive
+──────────────────────────────────────────────── */
+.post-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
+}
+
+@media (min-width: 480px) {
+  .post-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.member-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 480px) {
+  .member-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
+}
+
+@media (min-width: 640px) {
+  .member-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+}
+
+@media (min-width: 1024px) {
+  .member-grid { grid-template-columns: repeat(5, 1fr); }
+}
+
+/* ─────────────────────────────────────────────
+   Container — safe side padding on mobile
+──────────────────────────────────────────────── */
+.container { padding: 0 12px; }
+
+@media (min-width: 480px) { .container { padding: 0 16px; } }
+@media (min-width: 768px) { .container { padding: 0 24px; } }

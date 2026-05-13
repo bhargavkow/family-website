@@ -81,6 +81,51 @@ router.patch('/members/:id/toggle', async (req, res) => {
   }
 });
 
+// PATCH /api/admin/members/:id — edit member info
+router.patch('/members/:id', upload.single('profilePhoto'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.isAdmin) return res.status(400).json({ message: 'Cannot edit admin account' });
+
+    const updates = {};
+    if (req.body.name) updates.name = req.body.name.trim();
+    if (req.body.username) {
+      const newUsername = req.body.username.toLowerCase().trim();
+      const conflict = await User.findOne({ username: newUsername, _id: { $ne: user._id } });
+      if (conflict) return res.status(400).json({ message: 'Username already taken' });
+      updates.username = newUsername;
+    }
+    if (req.body.bio !== undefined) updates.bio = req.body.bio;
+    if (req.body.password && req.body.password.length >= 6) updates.password = req.body.password;
+
+    if (req.file) {
+      if (user.profilePhoto?.publicId) {
+        await cloudinary.uploader.destroy(user.profilePhoto.publicId).catch(() => {});
+      }
+      updates.profilePhoto = { url: req.file.path, publicId: req.file.filename };
+    }
+
+    // Use findByIdAndUpdate but handle password hashing via save()
+    if (updates.password) {
+      Object.assign(user, updates);
+      await user.save();
+    } else {
+      Object.assign(user, updates);
+      user.isModified = () => false; // skip pre-save hash for non-password fields
+      await User.findByIdAndUpdate(user._id, { $set: updates });
+    }
+
+    const updated = await User.findById(user._id).select('-password');
+    await cache.del('members:all');
+    res.json(updated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 // DELETE /api/admin/members/:id
 router.delete('/members/:id', async (req, res) => {
   try {

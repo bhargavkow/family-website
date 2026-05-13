@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { X, Plus, Edit3, MessageCircle, UserPlus, UserMinus, Play } from 'lucide-react';
+import { X, Plus, Edit3, MessageCircle, UserPlus, UserMinus, Play, Grid, Film, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
   apiGetMember, apiFollow, apiGetFollowers, apiGetFollowing,
@@ -10,6 +10,23 @@ import type { User, Post } from '../types';
 import PostLightbox from '../components/PostLightbox';
 import toast from 'react-hot-toast';
 import './MemberProfile.css';
+
+// ─── Confirm Popup ────────────────────────────────────────
+function ConfirmModal({ message, onConfirm, onCancel }: {
+  message: string; onConfirm: () => void; onCancel: () => void;
+}) {
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal animate-scale-in confirm-modal" onClick={e => e.stopPropagation()}>
+        <p className="confirm-message">{message}</p>
+        <div className="confirm-actions">
+          <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+          <button className="btn btn-danger" onClick={onConfirm} id="confirm-yes-btn">Yes, Logout</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Follower/Following Modal ─────────────────────────────
 function UserListModal({ title, users, onClose }: { title: string; users: User[]; onClose: () => void }) {
@@ -45,7 +62,8 @@ function UserListModal({ title, users, onClose }: { title: string; users: User[]
 // ─── Edit Profile Modal ───────────────────────────────────
 function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () => void; onSave: (u: User) => void }) {
   const [name, setName] = useState(user.name);
-  const [bio, setBio] = useState(user.bio);
+  const [username, setUsername] = useState(user.username);
+  const [bio, setBio] = useState(user.bio || '');
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState(user.profilePhoto?.url || '');
   const [loading, setLoading] = useState(false);
@@ -63,6 +81,7 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
     try {
       const fd = new FormData();
       fd.append('name', name);
+      fd.append('username', username);
       fd.append('bio', bio);
       if (photo) fd.append('profilePhoto', photo);
       const res = await apiUpdateProfile(user.username, fd);
@@ -98,10 +117,14 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
             </button>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
               <label className="label" htmlFor="edit-name">Name</label>
               <input id="edit-name" className="input" value={name} onChange={e => setName(e.target.value)} />
+            </div>
+            <div>
+              <label className="label" htmlFor="edit-username">Username</label>
+              <input id="edit-username" className="input" value={username} onChange={e => setUsername(e.target.value.toLowerCase())} />
             </div>
             <div>
               <label className="label" htmlFor="edit-bio">Bio</label>
@@ -213,9 +236,10 @@ function PostItem({ post, onClick }: { post: Post; onClick: () => void }) {
 }
 
 // ─── Main Profile Page ────────────────────────────────────
-export default function MemberProfile() {
-  const { username } = useParams<{ username: string }>();
-  const { user: me } = useAuth();
+export default function MemberProfile({ usernameOverride }: { usernameOverride?: string } = {}) {
+  const params = useParams<{ username: string }>();
+  const username = usernameOverride || params.username;
+  const { user: me, logout } = useAuth();
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState<User | null>(null);
@@ -223,8 +247,9 @@ export default function MemberProfile() {
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [postTab, setPostTab] = useState<'all' | 'images' | 'videos'>('all');
 
-  const [modal, setModal] = useState<'followers' | 'following' | 'editProfile' | 'createPost' | null>(null);
+  const [modal, setModal] = useState<'followers' | 'following' | 'editProfile' | 'createPost' | 'logoutConfirm' | null>(null);
   const [modalUsers, setModalUsers] = useState<User[]>([]);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
@@ -283,11 +308,38 @@ export default function MemberProfile() {
     } catch { toast.error('Failed to delete'); }
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
+
+  // Filtered posts for tabs
+  const filteredPosts = posts.filter(p => {
+    if (postTab === 'images') return p.mediaType === 'image';
+    if (postTab === 'videos') return p.mediaType === 'video';
+    return true;
+  });
+
   if (loading) return <div className="loading-screen"><div className="spinner spinner-lg" /></div>;
   if (!profile) return (
     <div className="empty-state" style={{ paddingTop: 80 }}>
-      <p style={{ fontSize: 20, fontWeight: 600 }}>Member not found</p>
-      <button className="btn btn-ghost" style={{ marginTop: 16 }} onClick={() => navigate('/members')}>← Back to Members</button>
+      {me?.isAdmin ? (
+        <>
+          <div style={{ fontSize: 48 }}>👑</div>
+          <p style={{ fontSize: 18, fontWeight: 700, marginTop: 12 }}>Admin Account</p>
+          <p style={{ fontSize: 14, color: 'var(--color-text-2)', marginTop: 6 }}>
+            Admin profiles are managed separately.
+          </p>
+          <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => navigate('/admin')}>
+            Open Admin Panel
+          </button>
+        </>
+      ) : (
+        <>
+          <p style={{ fontSize: 20, fontWeight: 600 }}>Member not found</p>
+          <button className="btn btn-ghost" style={{ marginTop: 16 }} onClick={() => navigate('/')}>← Back to Home</button>
+        </>
+      )}
     </div>
   );
 
@@ -314,28 +366,10 @@ export default function MemberProfile() {
         <div className="profile-info">
           <div className="profile-username-row">
             <h1 className="profile-username">@{profile.username}</h1>
-            {isOwn ? (
-              <button className="btn btn-outline btn-sm" onClick={() => setModal('editProfile')} id="edit-profile-btn">
-                <Edit3 size={14} /> Edit Profile
+            {isOwn && (
+              <button className="btn btn-ghost btn-sm" onClick={() => setModal('logoutConfirm')} id="logout-btn" title="Logout">
+                <LogOut size={15} />
               </button>
-            ) : (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  className={`btn btn-sm ${following ? 'btn-ghost' : 'btn-primary'}`}
-                  onClick={handleFollow}
-                  disabled={followLoading}
-                  id="follow-btn"
-                >
-                  {following ? <><UserMinus size={14} /> Unfollow</> : <><UserPlus size={14} /> Follow</>}
-                </button>
-                <button
-                  className="btn btn-outline btn-sm"
-                  onClick={() => navigate(`/messages?user=${profile._id}`)}
-                  id="message-btn"
-                >
-                  <MessageCircle size={14} /> Message
-                </button>
-              </div>
             )}
           </div>
 
@@ -356,32 +390,83 @@ export default function MemberProfile() {
               <span className="stat-name">Following</span>
             </button>
           </div>
+
+          {/* Own profile: Edit Profile + New Post row */}
+          {isOwn ? (
+            <div className="profile-action-row">
+              <button className="btn btn-outline" onClick={() => setModal('editProfile')} id="edit-profile-btn" style={{ flex: 1 }}>
+                <Edit3 size={14} /> Edit Profile
+              </button>
+              <button className="btn btn-primary" onClick={() => setModal('createPost')} id="create-post-btn" style={{ flex: 1, justifyContent: 'center' }}>
+                <Plus size={14} /> New Post
+              </button>
+            </div>
+          ) : !me?.isAdmin && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button
+                className={`btn btn-sm ${following ? 'btn-ghost' : 'btn-primary'}`}
+                onClick={handleFollow}
+                disabled={followLoading}
+                id="follow-btn"
+              >
+                {following ? <><UserMinus size={14} /> Unfollow</> : <><UserPlus size={14} /> Follow</>}
+              </button>
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={() => navigate(`/messages?user=${profile._id}`)}
+                id="message-btn"
+              >
+                <MessageCircle size={14} /> Message
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Create Post Button ────────────────────────── */}
-      {isOwn && (
-        <div className="create-post-bar container">
-          <button className="btn btn-primary" onClick={() => setModal('createPost')} id="create-post-btn">
-            <Plus size={16} /> New Post
-          </button>
-        </div>
-      )}
-
-      {/* ── Divider ──────────────────────────────────── */}
-      <div style={{ borderTop: '1px solid var(--color-border)', margin: '0' }} />
+      {/* ── Instagram-style Tab Bar ───────────────────── */}
+      <div className="profile-tab-bar">
+        <button
+          className={`profile-tab ${postTab === 'all' ? 'active' : ''}`}
+          onClick={() => setPostTab('all')}
+          id="tab-all"
+          title="All Posts"
+        >
+          <Grid size={20} />
+        </button>
+        <button
+          className={`profile-tab ${postTab === 'images' ? 'active' : ''}`}
+          onClick={() => setPostTab('images')}
+          id="tab-images"
+          title="Photos"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </button>
+        <button
+          className={`profile-tab ${postTab === 'videos' ? 'active' : ''}`}
+          onClick={() => setPostTab('videos')}
+          id="tab-videos"
+          title="Videos"
+        >
+          <Film size={20} />
+        </button>
+      </div>
 
       {/* ── Posts Grid ───────────────────────────────── */}
-      {posts.length === 0 ? (
+      {filteredPosts.length === 0 ? (
         <div className="empty-state">
-          <div style={{ fontSize: 48 }}>📷</div>
-          <p style={{ marginTop: 12 }}>No posts yet</p>
+          <div style={{ fontSize: 48 }}>{postTab === 'videos' ? '🎬' : '📷'}</div>
+          <p style={{ marginTop: 12 }}>
+            {postTab === 'all' ? 'No posts yet' : postTab === 'videos' ? 'No videos yet' : 'No photos yet'}
+          </p>
         </div>
       ) : (
         <div className="profile-posts-grid">
-          {posts.map((post, i) => (
+          {filteredPosts.map((post) => (
             <div key={post._id} style={{ position: 'relative' }}>
-              <PostItem post={post} onClick={() => setLightboxIdx(i)} />
+              <PostItem post={post} onClick={() => setLightboxIdx(posts.indexOf(post))} />
               {isOwn && (
                 <button
                   className="delete-post-btn"
@@ -409,7 +494,10 @@ export default function MemberProfile() {
         <EditProfileModal
           user={profile}
           onClose={() => setModal(null)}
-          onSave={(updated) => setProfile(updated)}
+          onSave={(updated) => {
+            setProfile(updated);
+            if (updated.username !== username) navigate(`/members/${updated.username}`);
+          }}
         />
       )}
 
@@ -417,6 +505,14 @@ export default function MemberProfile() {
         <CreatePostModal
           onClose={() => setModal(null)}
           onCreated={(post) => setPosts(prev => [post, ...prev])}
+        />
+      )}
+
+      {modal === 'logoutConfirm' && (
+        <ConfirmModal
+          message="Are you sure you want to logout?"
+          onConfirm={handleLogout}
+          onCancel={() => setModal(null)}
         />
       )}
 

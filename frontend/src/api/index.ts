@@ -88,3 +88,9 @@ export const apiAdminGetPosts = (page = 1) =>
 
 export const apiAdminDeletePost = (id: string) =>
   client.delete(`/admin/posts/${id}`);
+
+export const apiAdminUpdateMember = (id: string, data: FormData) =>
+  client.patch<User>(`/admin/members/${id}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+

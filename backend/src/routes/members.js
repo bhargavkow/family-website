@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
     const cached = await cache.get('members:all');
     if (cached) return res.json(JSON.parse(cached));
 
-    const members = await User.find({ isActive: true })
+    const members = await User.find({ isActive: true, isAdmin: false })
       .select('username name profilePhoto bio followers following')
       .sort({ createdAt: -1 });
 
@@ -31,6 +31,7 @@ router.get('/:username', async (req, res) => {
     const user = await User.findOne({
       username: req.params.username.toLowerCase(),
       isActive: true,
+      isAdmin: false,
     })
       .select('-password')
       .populate('followers', 'username name profilePhoto')
@@ -59,6 +60,16 @@ router.put('/:username', auth, upload.single('profilePhoto'), async (req, res) =
     if (req.body.name) updates.name = req.body.name;
     if (req.body.bio !== undefined) updates.bio = req.body.bio;
 
+    // Allow username change with conflict check
+    if (req.body.username) {
+      const newUsername = req.body.username.toLowerCase().trim();
+      if (newUsername !== req.user.username) {
+        const conflict = await User.findOne({ username: newUsername });
+        if (conflict) return res.status(400).json({ message: 'Username already taken' });
+        updates.username = newUsername;
+      }
+    }
+
     if (req.file) {
       // Delete old photo from Cloudinary
       if (req.user.profilePhoto?.publicId) {
@@ -79,6 +90,7 @@ router.put('/:username', auth, upload.single('profilePhoto'), async (req, res) =
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 // POST /api/members/:username/follow — toggle follow/unfollow
 router.post('/:username/follow', auth, async (req, res) => {

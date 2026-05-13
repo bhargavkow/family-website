@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import './Login.css';
 
-export default function Login() {
+export default function Login({ inlineMode = false }: { inlineMode?: boolean } = {}) {
   const { user, login } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -17,7 +17,8 @@ export default function Login() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (user) navigate(redirect, { replace: true });
+    // In inline mode, parent (ProfileRedirect) handles re-render — don't navigate
+    if (user && !inlineMode) navigate(redirect, { replace: true });
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,7 +29,8 @@ export default function Login() {
     try {
       await login(form.username.trim(), form.password);
       toast.success('Welcome back!');
-      navigate(redirect, { replace: true });
+      // In inline mode, don't navigate — ProfileRedirect re-renders automatically
+      if (!inlineMode) navigate(redirect, { replace: true });
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Invalid credentials';
       setError(msg);
