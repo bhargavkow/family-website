@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { X, Plus, Edit3, MessageCircle, UserPlus, UserMinus, Play, Grid, Film, LogOut } from 'lucide-react';
+import { X, Edit3, UserPlus, Play, Grid, Film, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
   apiGetMember, apiFollow, apiGetFollowers, apiGetFollowing,
@@ -150,11 +150,17 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const [preview, setPreview] = useState('');
   const [caption, setCaption] = useState('');
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => { if (preview) URL.revokeObjectURL(preview); };
+  }, [preview]);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
+    if (f.size > 100 * 1024 * 1024) return toast.error('File too large (max 100MB)');
     setFile(f);
     setPreview(URL.createObjectURL(f));
   };
@@ -162,27 +168,37 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const handleCreate = async () => {
     if (!file) return toast.error('Please select a file');
     setLoading(true);
+    setProgress(0);
     try {
       const fd = new FormData();
       fd.append('media', file);
       fd.append('caption', caption);
-      const res = await apiCreatePost(fd);
+      
+      const res = await apiCreatePost(fd, {
+        onUploadProgress: (ev: any) => {
+          const percent = Math.round((ev.loaded * 100) / ev.total);
+          setProgress(percent);
+        }
+      });
+      
       onCreated(res.data);
-      toast.success('Post created!');
+      toast.success('Post shared successfully!');
       onClose();
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to create post');
+      console.error(err);
+      toast.error(err?.response?.data?.message || 'Failed to share post. Try a smaller file.');
     } finally {
       setLoading(false);
+      setProgress(0);
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={loading ? undefined : onClose}>
       <div className="modal animate-scale-in" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()} id="create-post-modal">
         <div className="modal-header">
           <h3 style={{ fontWeight: 700 }}>New Post</h3>
-          <button className="icon-btn" onClick={onClose}><X size={20} /></button>
+          {!loading && <button className="icon-btn" onClick={onClose}><X size={20} /></button>}
         </div>
         <div className="modal-body">
           {!file ? (
@@ -197,18 +213,30 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
                 ? <video src={preview} controls style={{ width: '100%', borderRadius: 12, maxHeight: 300 }} />
                 : <img src={preview} alt="preview" style={{ width: '100%', borderRadius: 12, maxHeight: 300, objectFit: 'cover' }} />
               }
-              <button className="change-file-btn" onClick={() => fileRef.current?.click()}>Change</button>
+              {!loading && <button className="change-file-btn" onClick={() => fileRef.current?.click()}>Change</button>}
             </div>
           )}
           <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFile} id="post-file-input" />
 
           <div style={{ marginTop: 16 }}>
             <label className="label" htmlFor="post-caption">Caption</label>
-            <textarea id="post-caption" className="input" rows={3} placeholder="Write a caption..." value={caption} onChange={e => setCaption(e.target.value)} style={{ resize: 'vertical' }} />
+            <textarea id="post-caption" className="input" rows={3} placeholder="Write a caption..." value={caption} onChange={e => setCaption(e.target.value)} disabled={loading} style={{ resize: 'vertical' }} />
           </div>
 
-          <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
-            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+          {loading && (
+            <div style={{ marginTop: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
+                <span>{progress < 100 ? 'Uploading...' : 'Processing on server...'}</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="progress-bar-bg">
+                <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+            {!loading && <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>}
             <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={handleCreate} disabled={loading || !file} id="submit-post-btn">
               {loading ? <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : 'Share Post'}
             </button>
@@ -239,7 +267,7 @@ function PostItem({ post, onClick }: { post: Post; onClick: () => void }) {
 export default function MemberProfile({ usernameOverride }: { usernameOverride?: string } = {}) {
   const params = useParams<{ username: string }>();
   const username = usernameOverride || params.username;
-  const { user: me, logout } = useAuth();
+  const { user: me, logout, setUser } = useAuth();
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState<User | null>(null);
@@ -351,129 +379,114 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
   return (
     <div className="page profile-page">
       {/* ── Profile Header ───────────────────────────── */}
-      <div className="profile-header container">
-        {/* Avatar */}
-        <div className="profile-avatar-wrap">
-          <div className="avatar-ring">
-            {avatarUrl
-              ? <img src={avatarUrl} alt={profile.name} className="avatar profile-avatar" />
-              : <div className="avatar profile-avatar profile-initial">{initial}</div>
-            }
-          </div>
-        </div>
-
-        {/* Info */}
-        <div className="profile-info">
-          <div className="profile-username-row">
-            <h1 className="profile-username">@{profile.username}</h1>
-            {isOwn && (
-              <button className="btn btn-ghost btn-sm" onClick={() => setModal('logoutConfirm')} id="logout-btn" title="Logout">
-                <LogOut size={15} />
-              </button>
-            )}
+      <header className="profile-header container">
+        <div className="profile-header-top">
+          {/* Avatar */}
+          <div className="profile-avatar-container">
+            <div className="avatar-ring">
+              {avatarUrl
+                ? <img src={avatarUrl} alt={profile.name} className="avatar profile-avatar" />
+                : <div className="avatar profile-avatar profile-initial">{initial}</div>
+              }
+            </div>
           </div>
 
-          <div className="profile-name">{profile.name}</div>
-          {profile.bio && <p className="profile-bio">{profile.bio}</p>}
-
+          {/* Stats (Mobile style) */}
           <div className="profile-stats">
             <div className="profile-stat">
               <span className="stat-num">{posts.length}</span>
-              <span className="stat-name">Posts</span>
+              <span className="stat-name">posts</span>
             </div>
             <button className="profile-stat profile-stat-btn" onClick={openFollowers} id="followers-btn">
               <span className="stat-num">{followerCount}</span>
-              <span className="stat-name">Followers</span>
+              <span className="stat-name">followers</span>
             </button>
             <button className="profile-stat profile-stat-btn" onClick={openFollowing} id="following-btn">
               <span className="stat-num">{followingCount}</span>
-              <span className="stat-name">Following</span>
+              <span className="stat-name">following</span>
             </button>
           </div>
+        </div>
 
-          {/* Own profile: Edit Profile + New Post row */}
+        {/* Bio Section */}
+        <div className="profile-bio-container">
+          <h1 className="profile-display-name">{profile.name}</h1>
+          {profile.bio && <p className="profile-bio-text">{profile.bio}</p>}
+        </div>
+
+        {/* Actions */}
+        <div className="profile-actions-container">
           {isOwn ? (
-            <div className="profile-action-row">
-              <button className="btn btn-outline" onClick={() => setModal('editProfile')} id="edit-profile-btn" style={{ flex: 1 }}>
-                <Edit3 size={14} /> Edit Profile
+            <>
+              <button className="btn profile-action-btn" onClick={() => setModal('editProfile')} id="edit-profile-btn">
+                Edit profile
               </button>
-              <button className="btn btn-primary" onClick={() => setModal('createPost')} id="create-post-btn" style={{ flex: 1, justifyContent: 'center' }}>
-                <Plus size={14} /> New Post
+              <button className="btn profile-action-btn" onClick={() => setModal('createPost')} id="create-post-btn">
+                Share post
               </button>
-            </div>
+              <button className="btn profile-action-btn-icon" onClick={() => setModal('logoutConfirm')} id="logout-btn">
+                <Settings size={20} />
+              </button>
+            </>
           ) : !me?.isAdmin && (
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <>
               <button
-                className={`btn btn-sm ${following ? 'btn-ghost' : 'btn-primary'}`}
+                className={`btn profile-action-btn ${following ? 'following' : 'btn-primary'}`}
                 onClick={handleFollow}
                 disabled={followLoading}
                 id="follow-btn"
               >
-                {following ? <><UserMinus size={14} /> Unfollow</> : <><UserPlus size={14} /> Follow</>}
+                {following ? 'Following' : 'Follow'}
               </button>
               <button
-                className="btn btn-outline btn-sm"
+                className="btn profile-action-btn"
                 onClick={() => navigate(`/messages?user=${profile._id}`)}
                 id="message-btn"
               >
-                <MessageCircle size={14} /> Message
+                Message
               </button>
-            </div>
+              <button className="btn profile-action-btn-icon">
+                <UserPlus size={20} />
+              </button>
+            </>
           )}
         </div>
-      </div>
+      </header>
 
-      {/* ── Instagram-style Tab Bar ───────────────────── */}
-      <div className="profile-tab-bar">
-        <button
-          className={`profile-tab ${postTab === 'all' ? 'active' : ''}`}
-          onClick={() => setPostTab('all')}
-          id="tab-all"
-          title="All Posts"
-        >
-          <Grid size={20} />
+      {/* ── Tabs ───────────────────────────────────── */}
+      <div className="profile-tabs">
+        <button className={`profile-tab-item ${postTab === 'all' ? 'active' : ''}`} onClick={() => setPostTab('all')}>
+          <Grid size={22} strokeWidth={postTab === 'all' ? 2.5 : 1.5} />
         </button>
-        <button
-          className={`profile-tab ${postTab === 'images' ? 'active' : ''}`}
-          onClick={() => setPostTab('images')}
-          id="tab-images"
-          title="Photos"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-            <polyline points="21 15 16 10 5 21"/>
-          </svg>
+        <button className={`profile-tab-item ${postTab === 'images' ? 'active' : ''}`} onClick={() => setPostTab('images')}>
+          <Film size={22} strokeWidth={postTab === 'images' ? 2.5 : 1.5} />
         </button>
-        <button
-          className={`profile-tab ${postTab === 'videos' ? 'active' : ''}`}
-          onClick={() => setPostTab('videos')}
-          id="tab-videos"
-          title="Videos"
-        >
-          <Film size={20} />
+        <button className={`profile-tab-item ${postTab === 'videos' ? 'active' : ''}`} onClick={() => setPostTab('videos')}>
+          <Play size={22} strokeWidth={postTab === 'videos' ? 2.5 : 1.5} />
         </button>
       </div>
 
       {/* ── Posts Grid ───────────────────────────────── */}
       {filteredPosts.length === 0 ? (
-        <div className="empty-state">
-          <div style={{ fontSize: 48 }}>{postTab === 'videos' ? '🎬' : '📷'}</div>
-          <p style={{ marginTop: 12 }}>
-            {postTab === 'all' ? 'No posts yet' : postTab === 'videos' ? 'No videos yet' : 'No photos yet'}
-          </p>
+        <div className="profile-empty">
+          <div className="profile-empty-icon">
+            {postTab === 'videos' ? <Film size={40} /> : <Grid size={40} />}
+          </div>
+          <h2 className="profile-empty-title">
+            {postTab === 'all' ? 'No Posts Yet' : postTab === 'videos' ? 'No Videos Yet' : 'No Photos Yet'}
+          </h2>
         </div>
       ) : (
         <div className="profile-posts-grid">
           {filteredPosts.map((post) => (
-            <div key={post._id} style={{ position: 'relative' }}>
+            <div key={post._id} className="profile-post-wrapper">
               <PostItem post={post} onClick={() => setLightboxIdx(posts.indexOf(post))} />
               {isOwn && (
                 <button
-                  className="delete-post-btn"
+                  className="delete-post-badge"
                   onClick={(e) => { e.stopPropagation(); handleDeletePost(post._id); }}
-                  title="Delete post"
                 >
-                  <X size={14} />
+                  <X size={12} />
                 </button>
               )}
             </div>
@@ -496,6 +509,7 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
           onClose={() => setModal(null)}
           onSave={(updated) => {
             setProfile(updated);
+            if (isOwn) setUser(updated);
             if (updated.username !== username) navigate(`/members/${updated.username}`);
           }}
         />

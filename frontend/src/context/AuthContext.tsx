@@ -6,8 +6,11 @@ import toast from 'react-hot-toast';
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  login: async () => {},
-  logout: async () => {},
+  login: async () => { },
+  logout: async () => { },
+  setUser: function (): void {
+    throw new Error('Function not implemented.');
+  }
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -33,7 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   );

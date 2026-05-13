@@ -46,16 +46,27 @@ export default function Messages() {
   // Open chat from URL param or route
   useEffect(() => {
     const uid = routeUserId || searchParams.get('user');
-    if (uid && conversations.length > 0) {
-      const conv = conversations.find(c => c.partner._id === uid);
-      if (conv) openChat(conv.partner);
+    if (!uid) return;
+
+    const conv = conversations.find(c => c.partner._id === uid);
+    if (conv) {
+      openChat(conv.partner);
+    } else if (conversations.length > 0 || routeUserId || searchParams.get('user')) {
+      // For new chat: fetch user directly if not in conversations list
+      apiSearchMembers(uid).then(res => {
+        const found = res.data.find((u: any) => u._id === uid);
+        if (found) openChat(found);
+      }).catch(() => {});
     }
-  }, [routeUserId, conversations]);
+  }, [routeUserId, searchParams.get('user'), conversations.length]);
 
   // Search members to start new chat
   useEffect(() => {
     if (!search.trim()) { setSearchResults([]); return; }
-    apiSearchMembers(search).then(res => setSearchResults(res.data)).catch(() => {});
+    const t = setTimeout(() => {
+      apiSearchMembers(search).then(res => setSearchResults(res.data)).catch(() => {});
+    }, 300);
+    return () => clearTimeout(t);
   }, [search]);
 
   const openChat = async (partner: User) => {
@@ -69,13 +80,18 @@ export default function Messages() {
     try {
       const res = await apiGetThread(uid);
       setMessages(res.data);
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      // Auto scroll to bottom
+      setTimeout(() => {
+        if (bottomRef.current) {
+          bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
     } catch { /* no-op */ }
   };
 
   const startPolling = (uid: string) => {
-    clearInterval(pollRef.current);
-    pollRef.current = setInterval(() => loadThread(uid), 3000);
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(() => loadThread(uid), 4000);
   };
 
   useEffect(() => () => clearInterval(pollRef.current), []);

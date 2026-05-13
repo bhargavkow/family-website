@@ -22,13 +22,14 @@ const auth = async (req, res, next) => {
   }
 };
 
-const adminAuth = async (req, res, next) => {
-  await auth(req, res, () => {
+const adminAuth = [
+  auth,
+  (req, res, next) => {
     if (!req.user?.isAdmin) {
       return res.status(403).json({ message: 'Admin access required' });
     }
     next();
-  });
-};
+  }
+];
 
 module.exports = { auth, adminAuth };

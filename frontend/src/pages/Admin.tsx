@@ -274,6 +274,7 @@ export default function Admin() {
   const [members, setMembers] = useState<User[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Modals
   const [showAddMember, setShowAddMember] = useState(false);
@@ -281,27 +282,31 @@ export default function Admin() {
   const [lightboxPost, setLightboxPost] = useState<Post | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [s, m, p] = await Promise.all([
+        apiAdminStats(),
+        apiAdminGetMembers(),
+        apiAdminGetPosts(),
+      ]);
+      setStats(s.data);
+      setMembers(m.data);
+      setPosts(p.data.posts || []);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to fetch admin data');
+      toast.error('Failed to load admin data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (authLoading) return;
-    if (!user?.isAdmin) return;
-
-    const load = async () => {
-      try {
-        const [s, m, p] = await Promise.all([
-          apiAdminStats(),
-          apiAdminGetMembers(),
-          apiAdminGetPosts(),
-        ]);
-        setStats(s.data);
-        setMembers(m.data);
-        setPosts(p.data.posts || []); // Fix: API returns { posts, total, pages }
-      } catch (err) {
-        toast.error('Failed to load admin data');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    if (user?.isAdmin) {
+      loadData();
+    }
   }, [authLoading, user]);
 
   const handleLogout = async () => {
@@ -343,10 +348,24 @@ export default function Admin() {
   if (authLoading) return <div className="loading-screen"><div className="spinner spinner-lg" /></div>;
 
   if (!user?.isAdmin) {
-    return <AdminLoginGate onSuccess={() => {}} />;
+    return <AdminLoginGate onSuccess={loadData} />;
   }
 
-  if (loading || !stats) return <div className="loading-screen"><div className="spinner spinner-lg" /></div>;
+  if (loading) return <div className="loading-screen"><div className="spinner spinner-lg" /></div>;
+
+  if (error || !stats) {
+    return (
+      <div className="admin-error-screen">
+        <div className="admin-error-card">
+          <Shield size={48} color="var(--color-error)" />
+          <h2>Connection Error</h2>
+          <p>{error || 'Could not fetch dashboard data. Please check your connection.'}</p>
+          <button className="btn btn-primary" onClick={loadData}>Retry Connection</button>
+          <button className="btn btn-ghost" onClick={handleLogout} style={{ marginTop: 10 }}>Logout</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`admin-layout ${isSidebarOpen ? 'sidebar-open' : ''}`}>

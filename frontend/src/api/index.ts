@@ -30,8 +30,9 @@ export const apiGetFollowing = (username: string) =>
   client.get<User[]>(`/members/${username}/following`);
 
 // ─── Posts ───────────────────────────────────────────────
-export const apiCreatePost = (data: FormData) =>
+export const apiCreatePost = (data: FormData, config?: any) =>
   client.post<Post>('/posts', data, {
+    ...config,
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 
