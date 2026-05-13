@@ -11,7 +11,7 @@ import PostLightbox from '../components/PostLightbox';
 import toast from 'react-hot-toast';
 import './MemberProfile.css';
 
-// ─── Confirm Popup ──
+// ─── Confirm Popup
 function ConfirmModal({ message, onConfirm, onCancel }: {
   message: string; onConfirm: () => void; onCancel: () => void;
 }) {
