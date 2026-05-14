@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Send, Search, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
-  apiGetConversations, apiGetThread, apiSendMessage, apiSearchMembers
+  apiGetConversations, apiGetThread, apiSendMessage, apiSearchMembers, apiGetMember
 } from '../api';
 import type { Conversation, Message, User } from '../types';
 import './Messages.css';
@@ -20,6 +20,8 @@ function formatTime(date: string) {
 
 export default function Messages() {
   const { user: me } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { userId: routeUserId } = useParams<{ userId: string }>();
   const [searchParams] = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -32,6 +34,7 @@ export default function Messages() {
   const [view, setView] = useState<'list' | 'chat'>('list');
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  const didOpenFromState = useRef(false);
 
   // Load conversations
   const loadConversations = async () => {
@@ -43,21 +46,38 @@ export default function Messages() {
 
   useEffect(() => { loadConversations(); }, []);
 
-  // Open chat from URL param or route
+  // If navigated with a user object in state (from follower/following modal), open chat immediately
+  useEffect(() => {
+    if (didOpenFromState.current) return;
+    const stateUser = (location.state as any)?.chatUser as User | undefined;
+    if (stateUser) {
+      didOpenFromState.current = true;
+      openChat(stateUser);
+    }
+  }, [location.state]);
+
+  // Open chat from URL param — works even if no conversation yet
   useEffect(() => {
     const uid = routeUserId || searchParams.get('user');
     if (!uid) return;
 
+    // Try to find in existing conversations
     const conv = conversations.find(c => c.partner._id === uid);
     if (conv) {
       openChat(conv.partner);
-    } else if (conversations.length > 0 || routeUserId || searchParams.get('user')) {
-      // For new chat: fetch user directly if not in conversations list
-      apiSearchMembers(uid).then(res => {
-        const found = res.data.find((u: any) => u._id === uid);
-        if (found) openChat(found);
-      }).catch(() => {});
+      return;
     }
+
+    // Otherwise fetch the user info directly by searching via ID or username
+    // Try getting by ID via search, then fallback
+    apiSearchMembers(uid)
+      .then(res => {
+        const found = (res.data as User[]).find(u => u._id === uid);
+        if (found) { openChat(found); return; }
+        // Maybe uid is a username, try fetching as member
+        return apiGetMember(uid).then(r => { if (r.data?.user) openChat(r.data.user); });
+      })
+      .catch(() => {});
   }, [routeUserId, searchParams.get('user'), conversations.length]);
 
   // Search members to start new chat
@@ -80,11 +100,8 @@ export default function Messages() {
     try {
       const res = await apiGetThread(uid);
       setMessages(res.data);
-      // Auto scroll to bottom
       setTimeout(() => {
-        if (bottomRef.current) {
-          bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     } catch { /* no-op */ }
   };
@@ -92,6 +109,13 @@ export default function Messages() {
   const startPolling = (uid: string) => {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(() => loadThread(uid), 4000);
+  };
+
+  const closeChat = () => {
+    clearInterval(pollRef.current);
+    setActiveUser(null);
+    setMessages([]);
+    setView('list');
   };
 
   useEffect(() => () => clearInterval(pollRef.current), []);
@@ -116,9 +140,162 @@ export default function Messages() {
     ? <img src={u.profilePhoto.url} alt={u.name} className="avatar" style={{ width: size, height: size }} />
     : <div className="avatar msg-initial" style={{ width: size, height: size }}>{u.name?.[0]?.toUpperCase()}</div>;
 
+  // ── Chat View (full screen on mobile, hides navbar)
+  if (view === 'chat' && activeUser) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 500,
+        display: 'flex', flexDirection: 'column',
+        background: 'var(--color-bg)',
+      }}>
+        {/* ── Sticky Top Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center',
+          height: 60, padding: '0 8px',
+          borderBottom: '1px solid var(--color-border)',
+          background: 'var(--color-bg)',
+          flexShrink: 0, gap: 4,
+        }}>
+          {/* Back */}
+          <button onClick={closeChat} style={{
+            background: 'none', border: 'none', padding: '10px 8px',
+            cursor: 'pointer', color: 'var(--color-text)', display: 'flex', alignItems: 'center',
+          }}>
+            <ArrowLeft size={24} strokeWidth={2.2} />
+          </button>
+
+          {/* Avatar + Name + Username */}
+          <div
+            onClick={() => navigate(`/members/${activeUser.username}`)}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: 'pointer', minWidth: 0 }}
+          >
+            {activeUser.profilePhoto?.url ? (
+              <img src={activeUser.profilePhoto.url} alt={activeUser.name}
+                style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+            ) : (
+              <div style={{
+                width: 38, height: 38, borderRadius: '50%',
+                background: 'var(--grad-primary)', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 700, fontSize: 16, flexShrink: 0,
+              }}>{activeUser.name?.[0]?.toUpperCase()}</div>
+            )}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeUser.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--color-text-2)', marginTop: 1 }}>@{activeUser.username}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Scrollable Messages */}
+        <div id="chat-messages" style={{
+          flex: 1, overflowY: 'auto', padding: '16px 12px',
+          display: 'flex', flexDirection: 'column', gap: 6,
+          scrollbarWidth: 'none',
+        }}>
+          {messages.length === 0 && (
+            <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--color-text-2)', paddingTop: 60 }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>👋</div>
+              <div style={{ fontWeight: 600 }}>Say hi to {activeUser.name}!</div>
+            </div>
+          )}
+          {messages.map((msg, i) => {
+            const isMine = (msg.sender as any)?._id === me?._id || msg.sender === me?._id as any;
+            const showAvatar = !isMine && (i === 0 || (messages[i - 1].sender as any)?._id !== (msg.sender as any)?._id);
+            return (
+              <div key={msg._id} style={{
+                display: 'flex',
+                flexDirection: isMine ? 'row-reverse' : 'row',
+                alignItems: 'flex-end', gap: 6,
+                alignSelf: isMine ? 'flex-end' : 'flex-start',
+                maxWidth: '78%',
+              }}>
+                {/* Avatar for received messages */}
+                {!isMine && (
+                  <div style={{ width: 28, flexShrink: 0 }}>
+                    {showAvatar && (
+                      activeUser.profilePhoto?.url
+                        ? <img src={activeUser.profilePhoto.url} alt={activeUser.name}
+                            style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                        : <div style={{
+                            width: 28, height: 28, borderRadius: '50%',
+                            background: 'var(--grad-primary)', color: '#fff',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 11, fontWeight: 700,
+                          }}>{activeUser.name?.[0]?.toUpperCase()}</div>
+                    )}
+                  </div>
+                )}
+                {/* Bubble */}
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: 22,
+                  fontSize: 15,
+                  lineHeight: 1.4,
+                  wordBreak: 'break-word',
+                  background: isMine ? 'var(--color-primary)' : 'var(--color-surface-2)',
+                  color: isMine ? '#fff' : 'var(--color-text)',
+                  borderBottomRightRadius: isMine ? 4 : 22,
+                  borderBottomLeftRadius: !isMine ? 4 : 22,
+                  maxWidth: '100%',
+                }}>
+                  {msg.content}
+                </div>
+              </div>
+            );
+          })}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* ── Bottom Input (sticky) */}
+        <div style={{
+          padding: '10px 12px',
+          borderTop: '1px solid var(--color-border)',
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: 'var(--color-bg)',
+          flexShrink: 0,
+        }}>
+          <textarea
+            id="message-input"
+            placeholder="Message..."
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={handleKey}
+            rows={1}
+            style={{
+              flex: 1,
+              background: 'var(--color-surface-2)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 22, padding: '10px 16px',
+              fontSize: 15, color: 'var(--color-text)',
+              resize: 'none', maxHeight: 120,
+              outline: 'none',
+            }}
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!text.trim() || sending}
+            style={{
+              background: 'none', border: 'none',
+              color: text.trim() ? 'var(--color-primary)' : 'var(--color-text-2)',
+              fontWeight: 700, fontSize: 15,
+              cursor: text.trim() ? 'pointer' : 'default',
+              padding: '8px 4px', transition: 'color 0.2s',
+            }}
+          >
+            {sending
+              ? <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
+              : <Send size={22} />}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── List View
   return (
     <div className="page messages-page">
-      {/* ── Left Panel — Conversations ─────────────── */}
+      {/* ── Left Panel — Conversations */}
       <div className={`conversations-panel ${view === 'chat' ? 'hidden-mobile' : ''}`}>
         <div className="conv-header">
           <h2 className="conv-title">Messages</h2>
@@ -179,68 +356,15 @@ export default function Messages() {
         </div>
       </div>
 
-      {/* ── Right Panel — Chat ─────────────────────── */}
+      {/* ── Right Panel — Chat (desktop only) */}
       <div className={`chat-panel ${view === 'list' ? 'hidden-mobile' : ''}`}>
-        {!activeUser ? (
-          <div className="chat-empty">
-            <div style={{ fontSize: 48 }}>💬</div>
-            <h3 style={{ fontWeight: 600, marginTop: 16 }}>Your Messages</h3>
-            <p style={{ color: 'var(--color-text-2)', fontSize: 14, marginTop: 8 }}>
-              Select a conversation or search for a member to start chatting
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Chat Header */}
-            <div className="chat-header">
-              <button className="back-btn" onClick={() => { setView('list'); setActiveUser(null); clearInterval(pollRef.current); }} id="back-to-list">
-                <ArrowLeft size={20} />
-              </button>
-              {avatarEl(activeUser, 36)}
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>{activeUser.name}</div>
-                <div style={{ color: 'var(--color-text-2)', fontSize: 12 }}>@{activeUser.username}</div>
-              </div>
-            </div>
-
-            {/* Messages */}
-            <div className="chat-messages" id="chat-messages">
-              {messages.map(msg => {
-                const isMine = msg.sender._id === me?._id || msg.sender === me?._id as any;
-                return (
-                  <div key={msg._id} className={`bubble-wrap ${isMine ? 'mine' : 'theirs'}`}>
-                    <div className={`bubble ${isMine ? 'bubble-mine' : 'bubble-theirs'}`}>
-                      {msg.content}
-                    </div>
-                    <span className="bubble-time">{formatTime(msg.createdAt)}</span>
-                  </div>
-                );
-              })}
-              <div ref={bottomRef} />
-            </div>
-
-            {/* Input */}
-            <div className="chat-input-wrap">
-              <textarea
-                id="message-input"
-                className="chat-input"
-                placeholder="Write a message..."
-                value={text}
-                onChange={e => setText(e.target.value)}
-                onKeyDown={handleKey}
-                rows={1}
-              />
-              <button
-                className="send-btn"
-                onClick={sendMessage}
-                disabled={!text.trim() || sending}
-                id="send-btn"
-              >
-                {sending ? <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : <Send size={18} />}
-              </button>
-            </div>
-          </>
-        )}
+        <div className="chat-empty">
+          <div style={{ fontSize: 48 }}>💬</div>
+          <h3 style={{ fontWeight: 600, marginTop: 16 }}>Your Messages</h3>
+          <p style={{ color: 'var(--color-text-2)', fontSize: 14, marginTop: 8 }}>
+            Select a conversation or search for a member to start chatting
+          </p>
+        </div>
       </div>
     </div>
   );

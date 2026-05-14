@@ -1,18 +1,20 @@
-import { Heart, MessageCircle, Send, Bookmark, ChevronLeft } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, ChevronLeft, MoreHorizontal, Trash2 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import type { Post } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { apiLikePost } from '../api';
+import { apiLikePost, apiDeletePost } from '../api';
 import './PostLightbox.css';
 
 interface Props {
   post: Post;
   allPosts: Post[];
   onClose: () => void;
+  onDelete?: (postId: string) => void;
 }
 
-export default function PostLightbox({ post, allPosts, onClose }: Props) {
+export default function PostLightbox({ post, allPosts, onClose, onDelete }: Props) {
   const { user } = useAuth();
+  const [posts, setPosts] = useState(allPosts);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Scroll to the clicked post on mount
@@ -22,6 +24,12 @@ export default function PostLightbox({ post, allPosts, onClose }: Props) {
       activePost.scrollIntoView({ behavior: 'auto', block: 'start' });
     }
   }, [post._id]);
+
+  const handleDelete = (postId: string) => {
+    setPosts(prev => prev.filter(p => p._id !== postId));
+    if (onDelete) onDelete(postId);
+    if (posts.length <= 1) onClose();
+  };
 
   return (
     <div className="modal-overlay post-feed-overlay" onClick={onClose}>
@@ -35,8 +43,13 @@ export default function PostLightbox({ post, allPosts, onClose }: Props) {
 
         {/* Scrollable List */}
         <div className="post-feed-list" ref={scrollRef}>
-          {allPosts.map((p) => (
-            <PostItem key={p._id} post={p} currentUser={user} />
+          {posts.map((p) => (
+            <PostItem
+              key={p._id}
+              post={p}
+              currentUser={user}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       </div>
@@ -69,6 +82,11 @@ export default function PostLightbox({ post, allPosts, onClose }: Props) {
           flex: 1;
           overflow-y: auto;
           scroll-snap-type: y proximity;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .post-feed-list::-webkit-scrollbar {
+          display: none;
         }
         
         /* ─── Post Item ────────────────────────────────────── */
@@ -144,14 +162,75 @@ export default function PostLightbox({ post, allPosts, onClose }: Props) {
           75% { transform: scale(1); opacity: 1; }
           100% { transform: scale(0.8); opacity: 0; }
         }
+
+        /* ─── 3-dot menu ─── */
+        .post-dot-menu {
+          position: absolute;
+          top: 40px;
+          right: 12px;
+          background: var(--color-surface);
+          border: 1px solid var(--color-border);
+          border-radius: 14px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+          z-index: 100;
+          overflow: hidden;
+          min-width: 180px;
+          animation: fadeIn 0.15s ease;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        .post-dot-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 14px 16px;
+          cursor: pointer;
+          font-size: 15px;
+          font-weight: 500;
+          transition: background 0.15s;
+          border: none;
+          background: none;
+          width: 100%;
+          text-align: left;
+        }
+        .post-dot-menu-item:hover {
+          background: var(--color-surface-2);
+        }
+        .post-dot-menu-item.danger {
+          color: var(--color-error, #ef4444);
+        }
       `}</style>
     </div>
   );
 }
 
-function PostItem({ post, currentUser }: { post: Post; currentUser: any }) {
+function PostItem({ post, currentUser, onDelete }: {
+  post: Post;
+  currentUser: any;
+  onDelete: (id: string) => void;
+}) {
   const [liked, setLiked] = useState(post.likes.includes(currentUser?._id || ''));
   const [likeCount, setLikeCount] = useState(post.likes.length);
+  const [showMenu, setShowMenu] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const isOwner = currentUser?._id === (post.author as any)?._id ||
+                  currentUser?.username === post.author?.username;
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMenu]);
 
   const handleLike = async () => {
     if (!currentUser) return;
@@ -163,19 +242,25 @@ function PostItem({ post, currentUser }: { post: Post; currentUser: any }) {
   };
 
   const [showHeart, setShowHeart] = useState(false);
-
   const handleDoubleClick = () => {
-    if (!liked) {
-      handleLike();
-    }
+    if (!liked) handleLike();
     setShowHeart(true);
     setTimeout(() => setShowHeart(false), 1000);
   };
 
+  const handleDelete = async () => {
+    setShowMenu(false);
+    setDeleting(true);
+    try {
+      await apiDeletePost(post._id);
+      onDelete(post._id);
+    } catch { setDeleting(false); }
+  };
+
   return (
-    <div className="feed-post" id={`feed-post-${post._id}`}>
+    <div className="feed-post" id={`feed-post-${post._id}`} style={{ opacity: deleting ? 0.4 : 1 }}>
       {/* Header */}
-      <div className="feed-post-header">
+      <div className="feed-post-header" style={{ position: 'relative' }}>
         {post.author?.profilePhoto?.url ? (
           <img src={post.author.profilePhoto.url} alt={post.author.username} className="avatar" style={{ width: 32, height: 32 }} />
         ) : (
@@ -186,6 +271,27 @@ function PostItem({ post, currentUser }: { post: Post; currentUser: any }) {
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, fontSize: 14 }}>{post.author?.username}</div>
         </div>
+
+        {/* 3-dot button — only for post owner */}
+        {isOwner && (
+          <div style={{ position: 'relative' }} ref={menuRef}>
+            <button
+              onClick={() => setShowMenu(v => !v)}
+              style={{ background: 'none', border: 'none', padding: '4px 6px', cursor: 'pointer', color: 'var(--color-text)', borderRadius: 8, display: 'flex', alignItems: 'center' }}
+            >
+              <MoreHorizontal size={22} />
+            </button>
+
+            {showMenu && (
+              <div className="post-dot-menu">
+                <button className="post-dot-menu-item danger" onClick={handleDelete}>
+                  <Trash2 size={18} />
+                  Delete post
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Media */}
@@ -195,7 +301,6 @@ function PostItem({ post, currentUser }: { post: Post; currentUser: any }) {
         ) : (
           <img src={post.mediaUrl} alt={post.caption} />
         )}
-
         {showHeart && (
           <div className="big-heart-overlay">
             <Heart size={100} fill="white" color="white" />

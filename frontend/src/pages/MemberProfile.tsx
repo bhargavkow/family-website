@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { X, UserPlus, Play, Grid, Film, Settings, Search } from 'lucide-react';
+import { X, Play, Grid, Film, Settings, Search, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGetMember, apiFollow, apiGetFollowers, apiGetFollowing, apiUpdateProfile, apiCreatePost, apiDeletePost } from '../api';
 import type { User, Post } from '../types';
@@ -11,127 +11,217 @@ import toast from 'react-hot-toast';
 import './MemberProfile.css';
 
 // ─── Confirm Popup
-
-// ─── Follower/Following Modal ─────────────────────────────
-function UserListModal({ title, users, onClose }: { title: string; users: User[]; onClose: () => void }) {
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState(title); // 'Followers' or 'Following'
-  
-  const filteredUsers = users.filter(u => 
-    u.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (u.name && u.name.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
+function ConfirmModal({ message, onConfirm, onCancel }: {
+  message: string; onConfirm: () => void; onCancel: () => void;
+}) {
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal animate-scale-in" onClick={e => e.stopPropagation()} id="user-list-modal" style={{ maxWidth: 440, borderRadius: 15, overflow: 'hidden', background: 'var(--color-bg)' }}>
-        {/* Header */}
-        <div className="modal-header" style={{ borderBottom: '1px solid var(--color-border)', padding: '12px 16px', display: 'flex', alignItems: 'center' }}>
-          <button className="icon-btn" onClick={onClose} style={{ marginRight: 16 }}><X size={24} /></button>
-          <h3 style={{ fontSize: 16, fontWeight: 700, flex: 1 }}>{searchTerm ? 'Search' : title}</h3>
-        </div>
-
-        {/* Tabs */}
-        <div className="user-modal-tabs">
-          <div className="user-modal-tab">Mutual</div>
-          <div className={`user-modal-tab ${activeTab === 'Followers' ? 'active' : ''}`} onClick={() => setActiveTab('Followers')}>Followers</div>
-          <div className={`user-modal-tab ${activeTab === 'Following' ? 'active' : ''}`} onClick={() => setActiveTab('Following')}>Following</div>
-          <div className="user-modal-tab">Suggestions</div>
-        </div>
-
-        {/* Search */}
-        <div style={{ padding: '12px 16px' }}>
-          <div className="search-input-wrap">
-            <Search size={18} opacity={0.4} />
-            <input 
-              type="text" 
-              placeholder="Search" 
-              className="user-search-input" 
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="modal-body" style={{ padding: '8px 0', maxHeight: 450, overflowY: 'auto' }}>
-          {filteredUsers.length === 0 ? (
-            <div style={{ padding: '60px 20px', textAlign: 'center' }}>
-              <p style={{ color: 'var(--color-text-2)', fontSize: 14 }}>No users found</p>
-            </div>
-          ) : filteredUsers.map(u => (
-            <div key={u._id} className="user-list-item" onClick={() => { navigate(`/members/${u.username}`); onClose(); }}>
-              {u.profilePhoto?.url
-                ? <img src={u.profilePhoto.url} alt={u.name} className="avatar" style={{ width: 54, height: 54, border: 'none' }} />
-                : <div className="avatar user-initial-sm" style={{ width: 54, height: 54, fontSize: 18 }}>{u.name?.[0]?.toUpperCase()}</div>
-              }
-              <div style={{ flex: 1, marginLeft: 12 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--color-text)' }}>{u.username}</div>
-                <div style={{ color: 'var(--color-text-2)', fontSize: 14 }}>{u.name}</div>
-              </div>
-              <button className="btn btn-sm btn-ghost" style={{ borderRadius: 8, padding: '8px 16px', fontWeight: 600, fontSize: 14, background: 'var(--color-surface-2)' }}>
-                 {activeTab === 'Followers' ? 'Follow' : 'Following'}
-              </button>
-            </div>
-          ))}
+    <div className="modal-overlay" onClick={onCancel} style={{ zIndex: 2000 }}>
+      <div className="modal animate-scale-in confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 320, textAlign: 'center', padding: 24 }}>
+        <p style={{ fontWeight: 600, fontSize: 18, marginBottom: 8 }}>{message}</p>
+        <p style={{ color: 'var(--color-text-2)', fontSize: 14, marginBottom: 24 }}>Are you sure you want to log out of your account?</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, borderTop: '1px solid var(--color-border)', margin: '0 -24px -24px' }}>
+          <button style={{ background: 'none', border: 'none', padding: '14px', color: 'var(--color-error)', fontWeight: 700, borderBottom: '1px solid var(--color-border)', cursor: 'pointer' }} onClick={onConfirm}>Log Out</button>
+          <button style={{ background: 'none', border: 'none', padding: '14px', color: 'var(--color-text)', cursor: 'pointer' }} onClick={onCancel}>Cancel</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Follower/Following Modal ─────────────────────────────
+function UserListModal({
+  profileUsername, initialTab, followersList, followingList, meFollowingIds, onClose,
+}: {
+  profileUsername: string;
+  initialTab: 'followers' | 'following';
+  followersList: User[];
+  followingList: User[];
+  meFollowingIds: Set<string>;
+  onClose: () => void;
+}) {
+  const navigate = useNavigate();
+  const { user: me } = useAuth();
+  const [activeTab, setActiveTab] = useState<'followers' | 'following'>(initialTab);
+  const [search, setSearch] = useState('');
+  // Local copy so follow-back clicks update UI immediately
+  const [followingSet, setFollowingSet] = useState<Set<string>>(new Set(meFollowingIds));
+
+  const currentList = activeTab === 'followers' ? followersList : followingList;
+  const filtered = currentList.filter(u =>
+    u.username.toLowerCase().includes(search.toLowerCase()) ||
+    (u.name && u.name.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const handleFollowBack = async (u: User) => {
+    try {
+      await apiFollow(u.username);
+      setFollowingSet(prev => { const s = new Set(prev); s.add(u._id); return s; });
+      toast.success(`Following ${u.username}!`);
+    } catch { toast.error('Failed to follow'); }
+  };
+
+  const touchStartX = useRef<number>(0);
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const dx = touchStartX.current - e.changedTouches[0].clientX;
+    if (dx > 60) { setActiveTab('following'); setSearch(''); }
+    else if (dx < -60) { setActiveTab('followers'); setSearch(''); }
+  };
+
+  return (
+    <div
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      style={{
+      position: 'fixed', inset: 0, zIndex: 2000,
+      background: 'var(--color-bg)',
+      display: 'flex', flexDirection: 'column',
+      animation: 'slideInRight 0.25s cubic-bezier(0.32,0.72,0,1)',
+    }}>
+      {/* ── Header ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        height: 54, padding: '0 4px',
+        borderBottom: '1px solid var(--color-border)',
+        position: 'relative', flexShrink: 0,
+      }}>
+        <button onClick={onClose} style={{
+          background: 'none', border: 'none', padding: '10px 12px',
+          cursor: 'pointer', color: 'var(--color-text)', display: 'flex', alignItems: 'center',
+        }}>
+          <ArrowLeft size={26} strokeWidth={2.2} />
+        </button>
+        <div style={{
+          position: 'absolute', left: 0, right: 0,
+          textAlign: 'center', fontWeight: 700, fontSize: 17,
+          color: 'var(--color-text)', pointerEvents: 'none',
+        }}>
+          {profileUsername}
+        </div>
+      </div>
+
+      {/* ── Tabs ── */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
+        {(['followers', 'following'] as const).map(tab => (
+          <button key={tab} onClick={() => { setActiveTab(tab); setSearch(''); }} style={{
+            flex: 1, background: 'none', border: 'none',
+            padding: '14px 0',
+            fontWeight: activeTab === tab ? 700 : 500,
+            fontSize: 15,
+            color: activeTab === tab ? 'var(--color-text)' : 'var(--color-text-2)',
+            borderBottom: activeTab === tab ? '2px solid var(--color-text)' : '2px solid transparent',
+            cursor: 'pointer', transition: 'all 0.2s',
+          }}>
+            {tab === 'followers'
+              ? `${followersList.length} Followers`
+              : `${followingList.length} Following`}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Search ── */}
+      <div style={{ padding: '12px 16px', flexShrink: 0 }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: 'var(--color-surface-2)',
+          borderRadius: 12, padding: '10px 14px',
+        }}>
+          <Search size={16} style={{ color: 'var(--color-text-2)', flexShrink: 0 }} />
+          <input
+            type="text" placeholder="Search"
+            value={search} onChange={e => setSearch(e.target.value)}
+            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 16, color: 'var(--color-text)' }}
+            autoComplete="off"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--color-text-2)' }}>
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── User List ── */}
+      <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none' }}>
+        {filtered.length === 0 ? (
+          <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-2)', fontSize: 15 }}>
+            No users found
+          </div>
+        ) : filtered.map(u => {
+          const isMe = me?._id === u._id || me?.username === u.username;
+          // Determine button to show
+          // Following tab → always Message
+          // Followers tab → if me already follows u → Message, else → Follow back (blue)
+          const iFollowThem = followingSet.has(u._id);
+          const showMessage = activeTab === 'following' || iFollowThem;
+
+          return (
+            <div key={u._id} style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', gap: 14 }}>
+              {/* Avatar */}
+              <div onClick={() => { navigate(`/members/${u.username}`); onClose(); }}
+                style={{ cursor: 'pointer', flexShrink: 0 }}>
+                {u.profilePhoto?.url ? (
+                  <img src={u.profilePhoto.url} alt={u.name}
+                    style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{
+                    width: 52, height: 52, borderRadius: '50%',
+                    background: 'var(--grad-primary)', color: 'white',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 700, fontSize: 20,
+                  }}>{u.name?.[0]?.toUpperCase()}</div>
+                )}
+              </div>
+
+              {/* Info */}
+              <div onClick={() => { navigate(`/members/${u.username}`); onClose(); }}
+                style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.username}</div>
+                <div style={{ fontSize: 13, color: 'var(--color-text-2)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</div>
+              </div>
+
+              {/* Action Button */}
+              {!isMe && me && (
+                showMessage ? (
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      onClose();
+                      navigate('/messages', { state: { chatUser: u } });
+                    }}
+                    style={{
+                      flexShrink: 0, padding: '8px 18px', borderRadius: 10,
+                      border: '1.5px solid var(--color-border)', cursor: 'pointer',
+                      fontWeight: 700, fontSize: 14,
+                      background: 'var(--color-surface)', color: 'var(--color-text)',
+                    }}
+                  >
+                    Message
+                  </button>
+                ) : (
+                  <button
+                    onClick={e => { e.stopPropagation(); handleFollowBack(u); }}
+                    style={{
+                      flexShrink: 0, padding: '8px 18px', borderRadius: 10,
+                      border: 'none', cursor: 'pointer',
+                      fontWeight: 700, fontSize: 14,
+                      background: 'var(--color-primary)', color: '#fff',
+                    }}
+                  >
+                    Follow back
+                  </button>
+                )
+              )}
+            </div>
+          );
+        })}
+      </div>
+
       <style>{`
-        .user-modal-tabs {
-          display: flex;
-          border-bottom: 1px solid var(--color-border);
-          overflow-x: auto;
-          scrollbar-width: none;
+        @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
         }
-        .user-modal-tabs::-webkit-scrollbar { display: none; }
-        .user-modal-tab {
-          flex: 1;
-          white-space: nowrap;
-          text-align: center;
-          padding: 14px 12px;
-          font-weight: 600;
-          font-size: 14px;
-          color: var(--color-text-2);
-          cursor: pointer;
-          position: relative;
-        }
-        .user-modal-tab.active {
-          color: var(--color-text);
-        }
-        .user-modal-tab.active::after {
-          content: '';
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: var(--color-text);
-        }
-        .search-input-wrap {
-          display: flex;
-          align-items: center;
-          background: var(--color-surface-2);
-          padding: 10px 14px;
-          border-radius: 10px;
-          gap: 12px;
-        }
-        .user-search-input {
-          background: none;
-          border: none;
-          color: var(--color-text);
-          flex: 1;
-          font-size: 16px;
-        }
-        .user-search-input:focus { outline: none; }
-        .user-list-item {
-          display: flex;
-          align-items: center;
-          padding: 10px 16px;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-        .user-list-item:hover { background: var(--color-surface-2); }
       `}</style>
     </div>
   );
@@ -177,7 +267,7 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="modal animate-scale-in" onClick={e => e.stopPropagation()} id="edit-profile-modal" style={{ maxWidth: 420 }}>
         <div className="modal-header" style={{ borderBottom: '1px solid var(--color-border)', padding: '12px 16px' }}>
           <button className="btn btn-ghost" style={{ border: 'none', background: 'none', fontSize: 14 }} onClick={onClose}>Cancel</button>
@@ -444,7 +534,7 @@ function PostItem({ post, onClick }: { post: Post; onClick: () => void }) {
 }
 
 // ─── Post Grid ────────────────────────────────────────────
-function PostGrid({ posts, isOwn, onDelete, onPostClick, emptyTitle }: {
+function PostGrid({ posts, onPostClick, emptyTitle }: {
   posts: Post[]; isOwn: boolean; onDelete: (id: string) => void; onPostClick: (p: Post) => void; emptyTitle: string;
 }) {
   if (posts.length === 0) {
@@ -463,14 +553,6 @@ function PostGrid({ posts, isOwn, onDelete, onPostClick, emptyTitle }: {
       {posts.map((post) => (
         <div key={post._id} className="profile-post-wrapper">
           <PostItem post={post} onClick={() => onPostClick(post)} />
-          {isOwn && (
-            <button
-              className="delete-post-badge"
-              onClick={(e) => { e.stopPropagation(); onDelete(post._id); }}
-            >
-              <X size={12} />
-            </button>
-          )}
         </div>
       ))}
     </div>
@@ -490,8 +572,11 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [postTab, setPostTab] = useState<'all' | 'images' | 'videos'>('all');
-  const [modal, setModal] = useState<'followers' | 'following' | 'editProfile' | 'createPost' | 'settings' | null>(null);
-  const [modalUsers, setModalUsers] = useState<User[]>([]);
+  const [modal, setModal] = useState<'followers' | 'following' | 'editProfile' | 'createPost' | 'settings' | 'confirmLogout' | null>(null);
+  const [followersList, setFollowersList] = useState<User[]>([]);
+  const [followingList, setFollowingList] = useState<User[]>([]);
+  const [meFollowingIds, setMeFollowingIds] = useState<Set<string>>(new Set());
+  const [modalInitialTab, setModalInitialTab] = useState<'followers' | 'following'>('followers');
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false, align: 'start' });
@@ -544,14 +629,37 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
   };
 
   const openFollowers = async () => {
-    const res = await apiGetFollowers(username!);
-    setModalUsers(res.data);
+    const requests: Promise<any>[] = [
+      apiGetFollowers(username!),
+      apiGetFollowing(username!),
+    ];
+    // Also fetch me's following to determine follow-back status
+    if (me) requests.push(apiGetFollowing(me.username));
+    const results = await Promise.all(requests);
+    setFollowersList(results[0].data);
+    setFollowingList(results[1].data);
+    if (me) {
+      const ids = new Set<string>((results[2].data as User[]).map(u => u._id));
+      setMeFollowingIds(ids);
+    }
+    setModalInitialTab('followers');
     setModal('followers');
   };
 
   const openFollowing = async () => {
-    const res = await apiGetFollowing(username!);
-    setModalUsers(res.data);
+    const requests: Promise<any>[] = [
+      apiGetFollowers(username!),
+      apiGetFollowing(username!),
+    ];
+    if (me) requests.push(apiGetFollowing(me.username));
+    const results = await Promise.all(requests);
+    setFollowersList(results[0].data);
+    setFollowingList(results[1].data);
+    if (me) {
+      const ids = new Set<string>((results[2].data as User[]).map(u => u._id));
+      setMeFollowingIds(ids);
+    }
+    setModalInitialTab('following');
     setModal('following');
   };
 
@@ -564,7 +672,11 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
     } catch { toast.error('Failed to delete'); }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    setModal('confirmLogout');
+  };
+
+  const performLogout = async () => {
     await logout();
     navigate('/');
   };
@@ -682,9 +794,7 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
               >
                 Message
               </button>
-              <button className="btn profile-action-btn-icon">
-                <UserPlus size={20} />
-              </button>
+
             </>
           )}
         </div>
@@ -740,10 +850,13 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
       </div>
 
       {/* ── Modals ───────────────────────────────────── */}
-      {(modal === 'followers' || modal === 'following') && (
+      {(modal === 'followers' || modal === 'following') && profile && (
         <UserListModal
-          title={modal === 'followers' ? 'Followers' : 'Following'}
-          users={modalUsers}
+          profileUsername={profile.username}
+          initialTab={modalInitialTab}
+          followersList={followersList}
+          followingList={followingList}
+          meFollowingIds={meFollowingIds}
           onClose={() => setModal(null)}
         />
       )}
@@ -774,11 +887,23 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
         />
       )}
 
+      {modal === 'confirmLogout' && (
+        <ConfirmModal 
+          message="Log out?" 
+          onConfirm={performLogout} 
+          onCancel={() => setModal(null)} 
+        />
+      )}
+
       {lightboxIdx !== null && (
         <PostLightbox
           post={posts[lightboxIdx]}
           allPosts={posts}
           onClose={() => setLightboxIdx(null)}
+          onDelete={(postId) => {
+            setPosts(prev => prev.filter(p => p._id !== postId));
+            if (posts.length <= 1) setLightboxIdx(null);
+          }}
         />
       )}
     </div>
