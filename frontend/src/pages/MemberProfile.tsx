@@ -1,60 +1,138 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { X, Edit3, UserPlus, Play, Grid, Film, Settings } from 'lucide-react';
+import { X, UserPlus, Play, Grid, Film, Settings, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import {
-  apiGetMember, apiFollow, apiGetFollowers, apiGetFollowing,
-  apiUpdateProfile, apiCreatePost, apiDeletePost,
-} from '../api';
+import { apiGetMember, apiFollow, apiGetFollowers, apiGetFollowing, apiUpdateProfile, apiCreatePost, apiDeletePost } from '../api';
 import type { User, Post } from '../types';
 import PostLightbox from '../components/PostLightbox';
+import SettingsMenu from '../components/SettingsMenu';
+import useEmblaCarousel from 'embla-carousel-react';
 import toast from 'react-hot-toast';
 import './MemberProfile.css';
 
 // ─── Confirm Popup
-function ConfirmModal({ message, onConfirm, onCancel }: {
-  message: string; onConfirm: () => void; onCancel: () => void;
-}) {
-  return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal animate-scale-in confirm-modal" onClick={e => e.stopPropagation()}>
-        <p className="confirm-message">{message}</p>
-        <div className="confirm-actions">
-          <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
-          <button className="btn btn-danger" onClick={onConfirm} id="confirm-yes-btn">Yes, Logout</button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Follower/Following Modal ─────────────────────────────
 function UserListModal({ title, users, onClose }: { title: string; users: User[]; onClose: () => void }) {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState(title); // 'Followers' or 'Following'
+  
+  const filteredUsers = users.filter(u => 
+    u.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (u.name && u.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal animate-scale-in" onClick={e => e.stopPropagation()} id="user-list-modal">
-        <div className="modal-header">
-          <h3 style={{ fontSize: 16, fontWeight: 700 }}>{title}</h3>
-          <button className="icon-btn" onClick={onClose}><X size={20} /></button>
+      <div className="modal animate-scale-in" onClick={e => e.stopPropagation()} id="user-list-modal" style={{ maxWidth: 440, borderRadius: 15, overflow: 'hidden', background: 'var(--color-bg)' }}>
+        {/* Header */}
+        <div className="modal-header" style={{ borderBottom: '1px solid var(--color-border)', padding: '12px 16px', display: 'flex', alignItems: 'center' }}>
+          <button className="icon-btn" onClick={onClose} style={{ marginRight: 16 }}><X size={24} /></button>
+          <h3 style={{ fontSize: 16, fontWeight: 700, flex: 1 }}>{searchTerm ? 'Search' : title}</h3>
         </div>
-        <div className="modal-body" style={{ padding: '8px 0', maxHeight: 400, overflowY: 'auto' }}>
-          {users.length === 0 ? (
-            <p style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-2)', fontSize: 14 }}>No users yet</p>
-          ) : users.map(u => (
+
+        {/* Tabs */}
+        <div className="user-modal-tabs">
+          <div className="user-modal-tab">Mutual</div>
+          <div className={`user-modal-tab ${activeTab === 'Followers' ? 'active' : ''}`} onClick={() => setActiveTab('Followers')}>Followers</div>
+          <div className={`user-modal-tab ${activeTab === 'Following' ? 'active' : ''}`} onClick={() => setActiveTab('Following')}>Following</div>
+          <div className="user-modal-tab">Suggestions</div>
+        </div>
+
+        {/* Search */}
+        <div style={{ padding: '12px 16px' }}>
+          <div className="search-input-wrap">
+            <Search size={18} opacity={0.4} />
+            <input 
+              type="text" 
+              placeholder="Search" 
+              className="user-search-input" 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="modal-body" style={{ padding: '8px 0', maxHeight: 450, overflowY: 'auto' }}>
+          {filteredUsers.length === 0 ? (
+            <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+              <p style={{ color: 'var(--color-text-2)', fontSize: 14 }}>No users found</p>
+            </div>
+          ) : filteredUsers.map(u => (
             <div key={u._id} className="user-list-item" onClick={() => { navigate(`/members/${u.username}`); onClose(); }}>
               {u.profilePhoto?.url
-                ? <img src={u.profilePhoto.url} alt={u.name} className="avatar" style={{ width: 44, height: 44 }} />
-                : <div className="avatar user-initial-sm">{u.name?.[0]?.toUpperCase()}</div>
+                ? <img src={u.profilePhoto.url} alt={u.name} className="avatar" style={{ width: 54, height: 54, border: 'none' }} />
+                : <div className="avatar user-initial-sm" style={{ width: 54, height: 54, fontSize: 18 }}>{u.name?.[0]?.toUpperCase()}</div>
               }
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{u.name}</div>
-                <div style={{ color: 'var(--color-text-2)', fontSize: 12 }}>@{u.username}</div>
+              <div style={{ flex: 1, marginLeft: 12 }}>
+                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--color-text)' }}>{u.username}</div>
+                <div style={{ color: 'var(--color-text-2)', fontSize: 14 }}>{u.name}</div>
               </div>
+              <button className="btn btn-sm btn-ghost" style={{ borderRadius: 8, padding: '8px 16px', fontWeight: 600, fontSize: 14, background: 'var(--color-surface-2)' }}>
+                 {activeTab === 'Followers' ? 'Follow' : 'Following'}
+              </button>
             </div>
           ))}
         </div>
       </div>
+      <style>{`
+        .user-modal-tabs {
+          display: flex;
+          border-bottom: 1px solid var(--color-border);
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .user-modal-tabs::-webkit-scrollbar { display: none; }
+        .user-modal-tab {
+          flex: 1;
+          white-space: nowrap;
+          text-align: center;
+          padding: 14px 12px;
+          font-weight: 600;
+          font-size: 14px;
+          color: var(--color-text-2);
+          cursor: pointer;
+          position: relative;
+        }
+        .user-modal-tab.active {
+          color: var(--color-text);
+        }
+        .user-modal-tab.active::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: var(--color-text);
+        }
+        .search-input-wrap {
+          display: flex;
+          align-items: center;
+          background: var(--color-surface-2);
+          padding: 10px 14px;
+          border-radius: 10px;
+          gap: 12px;
+        }
+        .user-search-input {
+          background: none;
+          border: none;
+          color: var(--color-text);
+          flex: 1;
+          font-size: 16px;
+        }
+        .user-search-input:focus { outline: none; }
+        .user-list-item {
+          display: flex;
+          align-items: center;
+          padding: 10px 16px;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .user-list-item:hover { background: var(--color-surface-2); }
+      `}</style>
     </div>
   );
 }
@@ -100,59 +178,69 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal animate-scale-in" onClick={e => e.stopPropagation()} id="edit-profile-modal">
-        <div className="modal-header">
-          <h3 style={{ fontWeight: 700 }}>Edit Profile</h3>
-          <button className="icon-btn" onClick={onClose}><X size={20} /></button>
+      <div className="modal animate-scale-in" onClick={e => e.stopPropagation()} id="edit-profile-modal" style={{ maxWidth: 420 }}>
+        <div className="modal-header" style={{ borderBottom: '1px solid var(--color-border)', padding: '12px 16px' }}>
+          <button className="btn btn-ghost" style={{ border: 'none', background: 'none', fontSize: 14 }} onClick={onClose}>Cancel</button>
+          <h3 style={{ fontWeight: 700, fontSize: 16 }}>Edit profile</h3>
+          <button className="btn btn-ghost" style={{ border: 'none', background: 'none', fontSize: 14, color: 'var(--color-primary)', fontWeight: 700 }} onClick={handleSave} disabled={loading}>
+            {loading ? <div className="spinner" style={{ width: 16, height: 16 }} /> : 'Done'}
+          </button>
         </div>
-        <div className="modal-body">
-          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <div className="modal-body" style={{ padding: '24px 20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 32 }}>
             <div className="edit-avatar-wrap" onClick={() => fileRef.current?.click()}>
               {preview
-                ? <img src={preview} alt="profile" className="avatar" style={{ width: 90, height: 90 }} />
-                : <div className="avatar edit-initial" style={{ width: 90, height: 90 }}>{user.name?.[0]?.toUpperCase()}</div>
+                ? <img src={preview} alt="profile" className="avatar" style={{ width: 84, height: 84, border: 'none', objectFit: 'cover' }} />
+                : <div className="avatar edit-initial" style={{ width: 84, height: 84, fontSize: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{user.name?.[0]?.toUpperCase()}</div>
               }
-              <div className="edit-avatar-overlay"><Edit3 size={16} /></div>
             </div>
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhoto} id="profile-photo-input" />
-            <button style={{ fontSize: 12, color: 'var(--color-primary-light)', background: 'none', marginTop: 8 }} onClick={() => fileRef.current?.click()}>
-              Change Photo
+            <button style={{ fontSize: 14, color: 'var(--color-primary)', fontWeight: 600, background: 'none', marginTop: 12 }} onClick={() => fileRef.current?.click()}>
+              Edit picture or avatar
             </button>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <label className="label" htmlFor="edit-name">Name</label>
-              <input id="edit-name" className="input" value={name} onChange={e => setName(e.target.value)} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div className="edit-field">
+              <label className="label" style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Name</label>
+              <input id="edit-name" className="input-minimal" value={name} onChange={e => setName(e.target.value)} placeholder="Name" />
             </div>
-            <div>
-              <label className="label" htmlFor="edit-username">Username</label>
-              <input id="edit-username" className="input" value={username} onChange={e => setUsername(e.target.value.toLowerCase())} />
+            <div className="edit-field">
+              <label className="label" style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Username</label>
+              <input id="edit-username" className="input-minimal" value={username} onChange={e => setUsername(e.target.value.toLowerCase())} placeholder="Username" />
             </div>
-            <div>
-              <label className="label">Bio</label>
+            <div className="edit-field">
+              <label className="label" style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Bio</label>
               <textarea
-                className="input"
+                className="input-minimal"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                rows={3}
+                rows={2}
                 maxLength={300}
-                placeholder="Tell us about yourself..."
+                placeholder="Bio"
+                style={{ resize: 'none' }}
               />
-              <div style={{ fontSize: 11, textAlign: 'right', color: 'var(--color-text-2)', marginTop: 4 }}>
-                {bio.length}/300
-              </div>
             </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={handleSave} disabled={loading} id="save-profile-btn">
-              {loading ? <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : 'Save'}
-            </button>
           </div>
         </div>
       </div>
+      <style>{`
+        .input-minimal {
+          width: 100%;
+          background: none;
+          border: none;
+          border-bottom: 1px solid var(--color-border);
+          padding: 8px 0;
+          color: var(--color-text);
+          font-size: 15px;
+          border-radius: 0;
+          transition: border-color 0.2s;
+        }
+        .input-minimal:focus {
+          outline: none;
+          border-bottom-color: var(--color-primary);
+        }
+      `}</style>
     </div>
   );
 }
@@ -209,6 +297,8 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
     setPreview(URL.createObjectURL(f));
   };
 
+  const { user: me } = useAuth();
+
   const handleCreate = async () => {
     if (!file) return toast.error('Please select a file');
     setLoading(true);
@@ -240,54 +330,99 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
   return (
     <div className="modal-overlay" onClick={loading ? undefined : onClose}>
-      <div className="modal animate-scale-in" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()} id="create-post-modal">
-        <div className="modal-header">
-          <h3 style={{ fontWeight: 700 }}>New Post</h3>
-          {!loading && <button className="icon-btn" onClick={onClose}><X size={20} /></button>}
+      <div className="modal animate-scale-in" style={{ maxWidth: file ? 800 : 420 }} onClick={e => e.stopPropagation()} id="create-post-modal">
+        <div className="modal-header" style={{ borderBottom: '1px solid var(--color-border)', padding: '12px 16px', display: 'flex', alignItems: 'center' }}>
+          {!loading && <button className="icon-btn" onClick={onClose} style={{ border: 'none', background: 'none' }}><X size={24} /></button>}
+          <h3 style={{ fontWeight: 700, fontSize: 16, flex: 1, textAlign: 'center' }}>Create new post</h3>
+          <button 
+            className="btn btn-ghost" 
+            style={{ border: 'none', background: 'none', fontSize: 14, color: file ? 'var(--color-primary)' : 'var(--color-text-3)', fontWeight: 700 }} 
+            onClick={handleCreate} 
+            disabled={loading || !file}
+          >
+            {loading ? <div className="spinner" style={{ width: 16, height: 16 }} /> : 'Share'}
+          </button>
         </div>
-        <div className="modal-body">
+        <div className="modal-body" style={{ padding: 0 }}>
           {!file ? (
-            <div className="upload-zone" onClick={() => fileRef.current?.click()} id="upload-zone">
-              <div className="upload-icon">📷</div>
-              <p>Click to select photo or video</p>
-              <p style={{ fontSize: 12, color: 'var(--color-text-2)' }}>Max 100MB</p>
+            <div className="upload-zone" onClick={() => fileRef.current?.click()} id="upload-zone" style={{ height: 450, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 20 }}>
+              <div style={{ color: 'var(--color-text-2)', marginBottom: 20 }}>
+                <Grid size={96} strokeWidth={1} />
+              </div>
+              <p style={{ fontSize: 22, fontWeight: 300, color: 'var(--color-text)', marginBottom: 8 }}>Drag photos and videos here</p>
+              <p style={{ fontSize: 14, color: 'var(--color-text-2)', marginBottom: 24 }}>Select images or videos up to 100MB</p>
+              <button className="btn btn-primary" style={{ borderRadius: 8, padding: '10px 24px', fontWeight: 600, fontSize: 14 }}>Select from device</button>
             </div>
           ) : (
-            <div className="post-preview">
-              {file.type.startsWith('video/')
-                ? <video src={preview} controls style={{ width: '100%', borderRadius: 12, maxHeight: 300 }} />
-                : <img src={preview} alt="preview" style={{ width: '100%', borderRadius: 12, maxHeight: 300, objectFit: 'cover' }} />
-              }
-              {!loading && <button className="change-file-btn" onClick={() => fileRef.current?.click()}>Change</button>}
+            <div className="post-create-layout" style={{ display: 'flex', height: 480, flexDirection: window.innerWidth < 640 ? 'column' : 'row' }}>
+              <div className="post-preview-container" style={{ flex: 1.5, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                {file.type.startsWith('video/')
+                  ? <video src={preview} controls style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                  : <img src={preview} alt="preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                }
+              </div>
+              <div className="post-create-sidebar" style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--color-border)' }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
+                  {me?.profilePhoto?.url ? (
+                    <img src={me.profilePhoto.url} alt={me.username} className="avatar" style={{ width: 32, height: 32 }} />
+                  ) : (
+                    <div className="avatar" style={{ width: 32, height: 32, background: 'var(--color-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600 }}>
+                      {me?.username?.[0]?.toUpperCase()}
+                    </div>
+                  )}
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>{me?.username}</span>
+                </div>
+                <textarea 
+                  id="post-caption" 
+                  className="caption-input" 
+                  rows={10} 
+                  placeholder="Write a caption..." 
+                  value={caption} 
+                  onChange={e => setCaption(e.target.value)} 
+                  disabled={loading} 
+                  style={{ border: 'none', background: 'none', color: 'var(--color-text)', fontSize: 15, padding: 0, resize: 'none', flex: 1 }} 
+                />
+              </div>
             </div>
           )}
           <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFile} id="post-file-input" />
 
-          <div style={{ marginTop: 16 }}>
-            <label className="label" htmlFor="post-caption">Caption</label>
-            <textarea id="post-caption" className="input" rows={3} placeholder="Write a caption..." value={caption} onChange={e => setCaption(e.target.value)} disabled={loading} style={{ resize: 'vertical' }} />
-          </div>
-
           {loading && (
-            <div style={{ marginTop: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
-                <span>{progress < 100 ? 'Uploading...' : 'Processing on server...'}</span>
-                <span>{progress}%</span>
-              </div>
-              <div className="progress-bar-bg">
-                <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
-              </div>
+            <div className="upload-progress-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'white' }}>
+               <div className="spinner" style={{ width: 40, height: 40, marginBottom: 16 }} />
+               <span>Sharing {progress}%</span>
             </div>
           )}
-
-          <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-            {!loading && <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Cancel</button>}
-            <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={handleCreate} disabled={loading || !file} id="submit-post-btn">
-              {loading ? <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : 'Share Post'}
-            </button>
-          </div>
         </div>
       </div>
+      <style>{`
+        .caption-input:focus { outline: none; }
+        
+        @media (max-width: 640px) {
+          #create-post-modal {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+          }
+          .post-create-layout {
+            flex-direction: column !important;
+            height: calc(100vh - 60px) !important;
+            overflow-y: auto;
+          }
+          .post-preview-container {
+            min-height: 350px !important;
+            max-height: 450px !important;
+          }
+          .post-create-sidebar {
+            border-left: none !important;
+            border-top: 1px solid var(--color-border);
+            flex: none !important;
+            padding-bottom: 40px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -308,6 +443,40 @@ function PostItem({ post, onClick }: { post: Post; onClick: () => void }) {
   );
 }
 
+// ─── Post Grid ────────────────────────────────────────────
+function PostGrid({ posts, isOwn, onDelete, onPostClick, emptyTitle }: {
+  posts: Post[]; isOwn: boolean; onDelete: (id: string) => void; onPostClick: (p: Post) => void; emptyTitle: string;
+}) {
+  if (posts.length === 0) {
+    return (
+      <div className="profile-empty">
+        <div className="profile-empty-icon">
+          <Grid size={40} />
+        </div>
+        <h2 className="profile-empty-title">{emptyTitle}</h2>
+      </div>
+    );
+  }
+
+  return (
+    <div className="profile-posts-grid">
+      {posts.map((post) => (
+        <div key={post._id} className="profile-post-wrapper">
+          <PostItem post={post} onClick={() => onPostClick(post)} />
+          {isOwn && (
+            <button
+              className="delete-post-badge"
+              onClick={(e) => { e.stopPropagation(); onDelete(post._id); }}
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Main Profile Page ────────────────────────────────────
 export default function MemberProfile({ usernameOverride }: { usernameOverride?: string } = {}) {
   const params = useParams<{ username: string }>();
@@ -321,10 +490,24 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [postTab, setPostTab] = useState<'all' | 'images' | 'videos'>('all');
-
-  const [modal, setModal] = useState<'followers' | 'following' | 'editProfile' | 'createPost' | 'logoutConfirm' | null>(null);
+  const [modal, setModal] = useState<'followers' | 'following' | 'editProfile' | 'createPost' | 'settings' | null>(null);
   const [modalUsers, setModalUsers] = useState<User[]>([]);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false, align: 'start' });
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    emblaApi.on('select', () => {
+      const idx = emblaApi.selectedScrollSnap();
+      setPostTab(idx === 0 ? 'all' : idx === 1 ? 'images' : 'videos');
+    });
+  }, [emblaApi]);
+
+  const scrollTo = (tab: 'all' | 'images' | 'videos') => {
+    setPostTab(tab);
+    if (emblaApi) emblaApi.scrollTo(tab === 'all' ? 0 : tab === 'images' ? 1 : 2);
+  };
 
   const isOwn = me?.username === username;
 
@@ -386,12 +569,6 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
     navigate('/');
   };
 
-  // Filtered posts for tabs
-  const filteredPosts = posts.filter(p => {
-    if (postTab === 'images') return p.mediaType === 'image';
-    if (postTab === 'videos') return p.mediaType === 'video';
-    return true;
-  });
 
   if (loading) return <div className="loading-screen"><div className="spinner spinner-lg" /></div>;
   if (!profile) return (
@@ -423,6 +600,24 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
 
   return (
     <div className="page profile-page">
+      {/* ── Top Navigation Bar ────────────────────────── */}
+      <div className="profile-top-nav">
+        <div className="top-nav-left">
+          {/* Back button or spacer */}
+          <div style={{ width: 40 }} />
+        </div>
+        <div className="top-nav-center">
+          <span className="top-nav-username">{profile.username}</span>
+        </div>
+        <div className="top-nav-right">
+          {isOwn && (
+            <button className="icon-btn" onClick={() => setModal('settings')}>
+              <Settings size={22} />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* ── Profile Header ───────────────────────────── */}
       <header className="profile-header container">
         <div className="profile-header-top">
@@ -436,7 +631,7 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
             </div>
           </div>
 
-          {/* Stats (Mobile style) */}
+          {/* Stats */}
           <div className="profile-stats">
             <div className="profile-stat">
               <span className="stat-num">{posts.length}</span>
@@ -469,9 +664,6 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
               <button className="btn profile-action-btn" onClick={() => setModal('createPost')} id="create-post-btn">
                 Share post
               </button>
-              <button className="btn profile-action-btn-icon" onClick={() => setModal('logoutConfirm')} id="logout-btn">
-                <Settings size={20} />
-              </button>
             </>
           ) : !me?.isAdmin && (
             <>
@@ -500,44 +692,52 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
 
       {/* ── Tabs ───────────────────────────────────── */}
       <div className="profile-tabs">
-        <button className={`profile-tab-item ${postTab === 'all' ? 'active' : ''}`} onClick={() => setPostTab('all')}>
+        <button className={`profile-tab-item ${postTab === 'all' ? 'active' : ''}`} onClick={() => scrollTo('all')}>
           <Grid size={22} strokeWidth={postTab === 'all' ? 2.5 : 1.5} />
         </button>
-        <button className={`profile-tab-item ${postTab === 'images' ? 'active' : ''}`} onClick={() => setPostTab('images')}>
+        <button className={`profile-tab-item ${postTab === 'images' ? 'active' : ''}`} onClick={() => scrollTo('images')}>
           <Film size={22} strokeWidth={postTab === 'images' ? 2.5 : 1.5} />
         </button>
-        <button className={`profile-tab-item ${postTab === 'videos' ? 'active' : ''}`} onClick={() => setPostTab('videos')}>
+        <button className={`profile-tab-item ${postTab === 'videos' ? 'active' : ''}`} onClick={() => scrollTo('videos')}>
           <Play size={22} strokeWidth={postTab === 'videos' ? 2.5 : 1.5} />
         </button>
       </div>
 
-      {/* ── Posts Grid ───────────────────────────────── */}
-      {filteredPosts.length === 0 ? (
-        <div className="profile-empty">
-          <div className="profile-empty-icon">
-            {postTab === 'videos' ? <Film size={40} /> : <Grid size={40} />}
+      {/* ── Swipeable Sections ────────────────────────── */}
+      <div className="embla" ref={emblaRef}>
+        <div className="embla__container">
+          {/* ALL POSTS */}
+          <div className="embla__slide">
+            <PostGrid 
+              posts={posts} 
+              isOwn={isOwn} 
+              onDelete={handleDeletePost} 
+              onPostClick={(p) => setLightboxIdx(posts.indexOf(p))}
+              emptyTitle="No Posts Yet"
+            />
           </div>
-          <h2 className="profile-empty-title">
-            {postTab === 'all' ? 'No Posts Yet' : postTab === 'videos' ? 'No Videos Yet' : 'No Photos Yet'}
-          </h2>
+          {/* IMAGES */}
+          <div className="embla__slide">
+            <PostGrid 
+              posts={posts.filter(p => p.mediaType === 'image')} 
+              isOwn={isOwn} 
+              onDelete={handleDeletePost} 
+              onPostClick={(p) => setLightboxIdx(posts.indexOf(p))}
+              emptyTitle="No Photos Yet"
+            />
+          </div>
+          {/* VIDEOS */}
+          <div className="embla__slide">
+            <PostGrid 
+              posts={posts.filter(p => p.mediaType === 'video')} 
+              isOwn={isOwn} 
+              onDelete={handleDeletePost} 
+              onPostClick={(p) => setLightboxIdx(posts.indexOf(p))}
+              emptyTitle="No Videos Yet"
+            />
+          </div>
         </div>
-      ) : (
-        <div className="profile-posts-grid">
-          {filteredPosts.map((post) => (
-            <div key={post._id} className="profile-post-wrapper">
-              <PostItem post={post} onClick={() => setLightboxIdx(posts.indexOf(post))} />
-              {isOwn && (
-                <button
-                  className="delete-post-badge"
-                  onClick={(e) => { e.stopPropagation(); handleDeletePost(post._id); }}
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      </div>
 
       {/* ── Modals ───────────────────────────────────── */}
       {(modal === 'followers' || modal === 'following') && (
@@ -567,20 +767,18 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
         />
       )}
 
-      {modal === 'logoutConfirm' && (
-        <ConfirmModal
-          message="Are you sure you want to logout?"
-          onConfirm={handleLogout}
-          onCancel={() => setModal(null)}
+      {modal === 'settings' && (
+        <SettingsMenu
+          onClose={() => setModal(null)}
+          onLogout={handleLogout}
         />
       )}
 
       {lightboxIdx !== null && (
         <PostLightbox
           post={posts[lightboxIdx]}
+          allPosts={posts}
           onClose={() => setLightboxIdx(null)}
-          onPrev={lightboxIdx > 0 ? () => setLightboxIdx(i => i! - 1) : undefined}
-          onNext={lightboxIdx < posts.length - 1 ? () => setLightboxIdx(i => i! + 1) : undefined}
         />
       )}
     </div>

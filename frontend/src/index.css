@@ -56,6 +56,38 @@
   --transition-slow: 0.4s ease;
 }
 
+body.light-mode {
+  --color-bg: #fafafa;
+  --color-bg-2: #ffffff;
+  --color-bg-3: #f0f0f0;
+  --color-surface: #ffffff;
+  --color-surface-2: #efefef;
+  --color-border: #dbdbdb;
+  --color-border-light: #efefef;
+
+  --color-text: #262626;
+  --color-text-2: #8e8e8e;
+  --color-text-3: #c7c7c7;
+
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.1);
+  --shadow: 0 4px 20px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.15);
+}
+
+body.dark-mode {
+  --color-bg: #0a0a0f;
+  --color-bg-2: #111118;
+  --color-bg-3: #1a1a25;
+  --color-surface: #16161f;
+  --color-surface-2: #1e1e2b;
+  --color-border: #2a2a3a;
+  --color-border-light: #3a3a50;
+
+  --color-text: #f0f0f8;
+  --color-text-2: #a8a8c0;
+  --color-text-3: #686888;
+}
+
 /* ─────────────────────────────────────────────
    Global Reset
 ──────────────────────────────────────────────── */
@@ -78,6 +110,7 @@ body {
   overflow-x: hidden;
   padding-bottom: var(--navbar-h);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 img, video {

@@ -157,13 +157,11 @@ export default function Search() {
         </>
       )}
 
-      {/* Lightbox */}
       {lightboxIdx !== null && (
         <PostLightbox
           post={posts[lightboxIdx]}
+          allPosts={posts}
           onClose={() => setLightboxIdx(null)}
-          onPrev={lightboxIdx > 0 ? () => setLightboxIdx(i => i! - 1) : undefined}
-          onNext={lightboxIdx < posts.length - 1 ? () => setLightboxIdx(i => i! + 1) : undefined}
         />
       )}
     </div>

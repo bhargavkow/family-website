@@ -15,10 +15,15 @@ const cookieOptions = {
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    let { username, password } = req.body;
     if (!username || !password) {
       return res.status(400).json({ message: 'Username and password required' });
     }
+
+    username = username.trim().toLowerCase();
+    password = password.trim();
+
+    console.log(`🔑 Login attempt: [${username}] (password length: ${password.length})`);
 
     const user = await User.findOne({ username: username.toLowerCase() });
     if (!user || !user.isActive) {

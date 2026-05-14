@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import BottomNavbar from './components/BottomNavbar';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -16,7 +17,8 @@ import ProfileRedirect from './pages/ProfileRedirect';
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/members" element={<Members />} />
@@ -71,7 +73,8 @@ function App() {
             error: { iconTheme: { primary: 'var(--color-error)', secondary: '#fff' } },
           }}
         />
-      </AuthProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

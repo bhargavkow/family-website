@@ -550,7 +550,11 @@ export default function Admin() {
       )}
 
       {lightboxPost && (
-        <PostLightbox post={lightboxPost} onClose={() => setLightboxPost(null)} />
+        <PostLightbox 
+          post={lightboxPost} 
+          allPosts={posts}
+          onClose={() => setLightboxPost(null)} 
+        />
       )}
 
       {showLogoutConfirm && (
