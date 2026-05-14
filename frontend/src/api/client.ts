@@ -1,7 +1,24 @@
 import axios from 'axios';
 
+const getBaseURL = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  
+  // 1. If we are on a production URL (Vercel), always use the environment variable
+  if (envUrl && envUrl.includes('onrender.com')) return envUrl;
+
+  // 2. If we are testing on a phone (accessing via IP like 192.168.x.x), 
+  // dynamically point to the backend on the same IP
+  const hostname = window.location.hostname;
+  if (hostname !== 'localhost' && hostname !== '127.0.0.1' && !hostname.includes('vercel.app')) {
+    return `http://${hostname}:5000/api`;
+  }
+
+  // 3. Fallback to env variable or localhost
+  return envUrl || 'http://localhost:5000/api';
+};
+
 const client = axios.create({
-  baseURL: 'http://192.168.1.45:5000/api',
+  baseURL: getBaseURL(),
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
