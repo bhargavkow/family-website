@@ -5,6 +5,8 @@ export interface User {
   username: string;
   name: string;
   bio: string;
+  occupation: string;
+  dob: string | null;
   profilePhoto: { url: string; publicId: string };
   followers: User[] | string[];
   following: User[] | string[];

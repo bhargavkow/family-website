@@ -57,6 +57,8 @@ router.put('/:username', auth, upload.single('profilePhoto'), async (req, res) =
 
     if (req.body.name) user.name = req.body.name.trim();
     if (req.body.bio !== undefined) user.bio = req.body.bio;
+    if (req.body.occupation !== undefined) user.occupation = req.body.occupation;
+    if (req.body.dob !== undefined) user.dob = req.body.dob || null;
 
     if (req.body.username) {
       const newUsername = req.body.username.toLowerCase().trim();

@@ -1,4 +1,5 @@
-import { X, Moon, Sun, LogOut, ChevronRight } from 'lucide-react';
+import { useEffect } from 'react';
+import { Moon, Sun, LogOut } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 interface Props {
@@ -9,84 +10,124 @@ interface Props {
 export default function SettingsMenu({ onClose, onLogout }: Props) {
   const { theme, toggleTheme } = useTheme();
 
+  // Lock body scroll while sheet is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal animate-scale-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
-        <div className="modal-header">
-          <h3 style={{ fontWeight: 700 }}>Settings</h3>
-          <button className="icon-btn" onClick={onClose}><X size={20} /></button>
-        </div>
-        <div className="modal-body" style={{ padding: '8px 0' }}>
-          <div className="settings-item" onClick={toggleTheme}>
-            <div className="settings-item-left">
-              {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
-              <span>{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
-            </div>
-            <div className={`theme-toggle-pill ${theme}`}>
-              <div className="toggle-dot" />
-            </div>
-          </div>
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 1200,
+          background: 'rgba(0,0,0,0.55)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+        }}
+      />
 
-          <div className="divider" style={{ margin: '4px 0' }} />
+      {/* Bottom Sheet */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        zIndex: 1201,
+        background: 'var(--color-surface)',
+        borderRadius: '20px 20px 0 0',
+        padding: '12px 0 0',
+        animation: 'slideUpSheet 0.28s cubic-bezier(0.32,0.72,0,1)',
+        boxShadow: '0 -4px 32px rgba(0,0,0,0.4)',
+      }}>
+        {/* Handle bar */}
+        <div style={{
+          width: 40, height: 4, borderRadius: 99,
+          background: 'var(--color-border-light)',
+          margin: '0 auto 16px',
+        }} />
 
-          <div className="settings-item logout-item" onClick={onLogout}>
-            <div className="settings-item-left">
-              <LogOut size={20} />
-              <span>Log Out</span>
-            </div>
-            <ChevronRight size={18} opacity={0.5} />
+        {/* Title */}
+        <p style={{
+          textAlign: 'center', fontWeight: 700, fontSize: 16,
+          color: 'var(--color-text)', paddingBottom: 16,
+          borderBottom: '1px solid var(--color-border)',
+        }}>Settings</p>
+
+        {/* Dark / Light Mode toggle */}
+        <div
+          onClick={toggleTheme}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '18px 24px', cursor: 'pointer',
+            borderBottom: '1px solid var(--color-border)',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface-2)')}
+          onMouseLeave={e => (e.currentTarget.style.background = '')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {theme === 'dark'
+              ? <Moon size={20} color="var(--color-text)" />
+              : <Sun size={20} color="var(--color-text)" />}
+            <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-text)' }}>
+              {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+            </span>
+          </div>
+          {/* Toggle pill */}
+          <div style={{
+            width: 44, height: 24,
+            background: theme === 'dark' ? 'var(--color-primary)' : 'var(--color-surface-2)',
+            border: `1px solid ${theme === 'dark' ? 'var(--color-primary)' : 'var(--color-border)'}`,
+            borderRadius: 20, position: 'relative',
+            transition: 'background 0.3s, border-color 0.3s',
+          }}>
+            <div style={{
+              width: 18, height: 18, background: 'white', borderRadius: '50%',
+              position: 'absolute', top: 2, left: 2,
+              transform: theme === 'dark' ? 'translateX(20px)' : 'translateX(0)',
+              transition: 'transform 0.3s',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
+            }} />
           </div>
         </div>
+
+        {/* Log Out */}
+        <div
+          onClick={onLogout}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            padding: '18px 24px', cursor: 'pointer',
+            color: 'var(--color-error)',
+            borderBottom: '1px solid var(--color-border)',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface-2)')}
+          onMouseLeave={e => (e.currentTarget.style.background = '')}
+        >
+          <LogOut size={20} />
+          <span style={{ fontSize: 16, fontWeight: 500 }}>Log Out</span>
+        </div>
+
+        {/* Cancel */}
+        <button
+          onClick={onClose}
+          style={{
+            width: '100%', background: 'none', border: 'none',
+            padding: '18px 24px', cursor: 'pointer',
+            color: 'var(--color-text-2)', fontSize: 16, fontWeight: 600,
+            marginBottom: 'env(safe-area-inset-bottom, 8px)',
+          }}
+        >
+          Cancel
+        </button>
       </div>
+
       <style>{`
-        .settings-item {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 14px 20px;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-        .settings-item:hover {
-          background: var(--color-surface-2);
-        }
-        .settings-item-left {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          font-weight: 500;
-        }
-        .logout-item {
-          color: var(--color-error);
-        }
-        .theme-toggle-pill {
-          width: 44px;
-          height: 24px;
-          background: var(--color-surface-2);
-          border: 1px solid var(--color-border);
-          border-radius: 20px;
-          position: relative;
-          transition: background 0.3s;
-        }
-        .theme-toggle-pill.dark {
-          background: var(--color-primary);
-          border-color: var(--color-primary);
-        }
-        .toggle-dot {
-          width: 18px;
-          height: 18px;
-          background: white;
-          border-radius: 50%;
-          position: absolute;
-          top: 2px;
-          left: 2px;
-          transition: transform 0.3s;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .theme-toggle-pill.dark .toggle-dot {
-          transform: translateX(20px);
+        @keyframes slideUpSheet {
+          from { transform: translateY(100%); }
+          to   { transform: translateY(0); }
         }
       `}</style>
-    </div>
+    </>
   );
 }

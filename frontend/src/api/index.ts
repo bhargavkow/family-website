@@ -95,3 +95,20 @@ export const apiAdminUpdateMember = (id: string, data: FormData) =>
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 
+// ─── Special Moments ─────────────────────────────────────
+export interface MomentImage { _id: string; url: string; publicId: string; caption: string; }
+export interface Moment { _id: string; name: string; coverImage: { url: string; publicId: string }; images: MomentImage[]; createdAt: string; }
+
+export const apiGetMoments = () => client.get<Moment[]>('/moments');
+
+export const apiAdminCreateMoment = (data: FormData) =>
+  client.post<Moment>('/moments', data, { headers: { 'Content-Type': 'multipart/form-data' } });
+
+export const apiAdminAddMomentImages = (id: string, data: FormData) =>
+  client.post<Moment>(`/moments/${id}/images`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
+
+export const apiAdminDeleteMomentImage = (id: string, imgId: string) =>
+  client.delete<Moment>(`/moments/${id}/images/${imgId}`);
+
+export const apiAdminDeleteMoment = (id: string) =>
+  client.delete(`/moments/${id}`);

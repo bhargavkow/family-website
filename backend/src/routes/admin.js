@@ -41,7 +41,7 @@ router.get('/members', async (req, res) => {
 // POST /api/admin/members — create new member
 router.post('/members', upload.single('profilePhoto'), async (req, res) => {
   try {
-    const { name, username, password, bio } = req.body;
+    const { name, username, password, bio, occupation, dob } = req.body;
     if (!name || !username || !password) {
       return res.status(400).json({ message: 'Name, username, and password are required' });
     }
@@ -49,7 +49,12 @@ router.post('/members', upload.single('profilePhoto'), async (req, res) => {
     const exists = await User.findOne({ username: username.toLowerCase() });
     if (exists) return res.status(400).json({ message: 'Username already taken' });
 
-    const userData = { name, username: username.toLowerCase(), password, bio: bio || '' };
+    const userData = {
+      name, username: username.toLowerCase(), password,
+      bio: bio || '',
+      occupation: occupation || '',
+      dob: dob || null,
+    };
 
     if (req.file) {
       userData.profilePhoto = {
@@ -94,6 +99,8 @@ router.patch('/members/:id', upload.single('profilePhoto'), async (req, res) => 
       user.username = newUsername;
     }
     if (req.body.bio !== undefined) user.bio = req.body.bio;
+    if (req.body.occupation !== undefined) user.occupation = req.body.occupation;
+    if (req.body.dob !== undefined) user.dob = req.body.dob || null;
     if (req.body.password && req.body.password.length >= 6) user.password = req.body.password;
 
     if (req.file) {

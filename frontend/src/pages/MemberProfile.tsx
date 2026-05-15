@@ -227,15 +227,167 @@ function UserListModal({
   );
 }
 
+// ─── Share Post Sheet ─────────────────────────────────────
+function SharePostSheet({ onFileSelected, onCancel }: {
+  onFileSelected: (file: File, accept: string) => void;
+  onCancel: () => void;
+}) {
+  const imageRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
+
+  // Lock body scroll
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) onFileSelected(f, 'image/*');
+  };
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) onFileSelected(f, 'video/*');
+  };
+
+  return (
+    <>
+      {/* Hidden file inputs */}
+      <input ref={imageRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageChange} />
+      <input ref={videoRef} type="file" accept="video/*" style={{ display: 'none' }} onChange={handleVideoChange} />
+
+      <div
+        style={{
+          position: 'fixed', inset: 0, zIndex: 1200,
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+        }}
+        onClick={onCancel}
+      />
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        zIndex: 1201,
+        background: 'var(--color-surface)',
+        borderRadius: '24px 24px 0 0',
+        padding: '12px 0 0',
+        animation: 'slideUpSheet 0.28s cubic-bezier(0.32,0.72,0,1)',
+        boxShadow: '0 -8px 40px rgba(0,0,0,0.5)',
+      }}>
+        {/* Handle bar */}
+        <div style={{
+          width: 36, height: 4, borderRadius: 99,
+          background: 'var(--color-border)',
+          margin: '0 auto 20px',
+        }} />
+
+        <p style={{
+          textAlign: 'center', fontWeight: 800, fontSize: 17,
+          color: 'var(--color-text)', paddingBottom: 20,
+          letterSpacing: '-0.3px',
+        }}>Create a Post</p>
+
+        {/* Option Cards */}
+        <div style={{ display: 'flex', gap: 12, padding: '0 16px 20px' }}>
+          {/* Image Post */}
+          <button
+            onClick={() => imageRef.current?.click()}
+            style={{
+              flex: 1,
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              gap: 10, padding: '20px 12px',
+              background: 'var(--color-surface-2)',
+              border: '1.5px solid var(--color-border)',
+              borderRadius: 18, cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+            onTouchStart={e => (e.currentTarget.style.background = 'var(--color-surface)')}
+            onTouchEnd={e => (e.currentTarget.style.background = 'var(--color-surface-2)')}
+          >
+            <div style={{
+              width: 52, height: 52, borderRadius: 16,
+              background: 'linear-gradient(135deg, #f97316, #f59e0b)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 26,
+              boxShadow: '0 6px 20px rgba(249,115,22,0.35)',
+            }}>🖼️</div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-text)' }}>Image Post</div>
+              <div style={{ fontSize: 11, color: 'var(--color-text-2)', marginTop: 2 }}>Photo from gallery</div>
+            </div>
+          </button>
+
+          {/* Video Post */}
+          <button
+            onClick={() => videoRef.current?.click()}
+            style={{
+              flex: 1,
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              gap: 10, padding: '20px 12px',
+              background: 'var(--color-surface-2)',
+              border: '1.5px solid var(--color-border)',
+              borderRadius: 18, cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+            onTouchStart={e => (e.currentTarget.style.background = 'var(--color-surface)')}
+            onTouchEnd={e => (e.currentTarget.style.background = 'var(--color-surface-2)')}
+          >
+            <div style={{
+              width: 52, height: 52, borderRadius: 16,
+              background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 26,
+              boxShadow: '0 6px 20px rgba(139,92,246,0.35)',
+            }}>🎬</div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-text)' }}>Video Post</div>
+              <div style={{ fontSize: 11, color: 'var(--color-text-2)', marginTop: 2 }}>Video from gallery</div>
+            </div>
+          </button>
+        </div>
+
+        <button
+          onClick={onCancel}
+          style={{
+            width: 'calc(100% - 32px)', margin: '0 16px',
+            background: 'var(--color-surface-2)',
+            border: '1.5px solid var(--color-border)',
+            borderRadius: 14,
+            padding: '16px', cursor: 'pointer',
+            color: 'var(--color-text-2)', fontSize: 15, fontWeight: 600,
+            marginBottom: 'max(env(safe-area-inset-bottom), 16px)',
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+      <style>{`
+        @keyframes slideUpSheet {
+          from { transform: translateY(100%); }
+          to   { transform: translateY(0); }
+        }
+      `}</style>
+    </>
+  );
+}
+
 // ─── Edit Profile Modal ───────────────────────────────────
 function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () => void; onSave: (u: User) => void }) {
   const [name, setName] = useState(user.name);
   const [username, setUsername] = useState(user.username);
   const [bio, setBio] = useState(user.bio || '');
+  const [occupation, setOccupation] = useState(user.occupation || '');
+  const [dob, setDob] = useState(user.dob ? user.dob.slice(0, 10) : '');
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState(user.profilePhoto?.url || '');
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Lock body scroll while sheet is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -251,6 +403,8 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
       fd.append('name', name);
       fd.append('username', username);
       fd.append('bio', bio);
+      fd.append('occupation', occupation);
+      fd.append('dob', dob);
       if (photo) {
         const optimized = await compressImage(photo);
         fd.append('profilePhoto', optimized, photo.name);
@@ -267,16 +421,54 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal animate-scale-in" onClick={e => e.stopPropagation()} id="edit-profile-modal" style={{ maxWidth: 420 }}>
-        <div className="modal-header" style={{ borderBottom: '1px solid var(--color-border)', padding: '12px 16px' }}>
-          <button className="btn btn-ghost" style={{ border: 'none', background: 'none', fontSize: 14 }} onClick={onClose}>Cancel</button>
+    <>
+      {/* Backdrop */}
+      <div
+        style={{
+          position: 'fixed', inset: 0, zIndex: 1200,
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(4px)',
+        }}
+        onClick={onClose}
+      />
+      {/* Bottom Sheet */}
+      <div
+        id="edit-profile-modal"
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          zIndex: 1201,
+          background: 'var(--color-surface)',
+          borderRadius: '20px 20px 0 0',
+          boxShadow: '0 -4px 32px rgba(0,0,0,0.4)',
+          maxHeight: '92vh',
+          display: 'flex',
+          flexDirection: 'column',
+          animation: 'slideUpSheet 0.3s cubic-bezier(0.32,0.72,0,1)',
+        }}
+      >
+        {/* Handle */}
+        <div style={{
+          width: 40, height: 4, borderRadius: 99,
+          background: 'var(--color-border-light)',
+          margin: '12px auto 0',
+          flexShrink: 0,
+        }} />
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderBottom: '1px solid var(--color-border)',
+          padding: '12px 16px',
+          flexShrink: 0,
+        }}>
+          <button style={{ border: 'none', background: 'none', fontSize: 14, color: 'var(--color-text-2)', fontWeight: 600, cursor: 'pointer' }} onClick={onClose}>Cancel</button>
           <h3 style={{ fontWeight: 700, fontSize: 16 }}>Edit profile</h3>
-          <button className="btn btn-ghost" style={{ border: 'none', background: 'none', fontSize: 14, color: 'var(--color-primary)', fontWeight: 700 }} onClick={handleSave} disabled={loading}>
+          <button style={{ border: 'none', background: 'none', fontSize: 14, color: 'var(--color-primary)', fontWeight: 700, cursor: 'pointer' }} onClick={handleSave} disabled={loading}>
             {loading ? <div className="spinner" style={{ width: 16, height: 16 }} /> : 'Done'}
           </button>
         </div>
-        <div className="modal-body" style={{ padding: '24px 20px' }}>
+        {/* Body — scrollable */}
+        <div style={{ overflowY: 'auto', scrollbarWidth: 'none', padding: '24px 20px', paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 32 }}>
             <div className="edit-avatar-wrap" onClick={() => fileRef.current?.click()}>
               {preview
@@ -285,7 +477,7 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
               }
             </div>
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhoto} id="profile-photo-input" />
-            <button style={{ fontSize: 14, color: 'var(--color-primary)', fontWeight: 600, background: 'none', marginTop: 12 }} onClick={() => fileRef.current?.click()}>
+            <button style={{ fontSize: 14, color: 'var(--color-primary)', fontWeight: 600, background: 'none', marginTop: 12, border: 'none', cursor: 'pointer' }} onClick={() => fileRef.current?.click()}>
               Edit picture or avatar
             </button>
           </div>
@@ -311,6 +503,27 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
                 style={{ resize: 'none' }}
               />
             </div>
+            <div className="edit-field">
+              <label className="label" style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Occupation</label>
+              <input
+                id="edit-occupation"
+                className="input-minimal"
+                value={occupation}
+                onChange={e => setOccupation(e.target.value)}
+                placeholder="e.g. Software Engineer"
+                maxLength={100}
+              />
+            </div>
+            <div className="edit-field">
+              <label className="label" style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Date of Birth</label>
+              <input
+                id="edit-dob"
+                type="date"
+                className="input-minimal"
+                value={dob}
+                onChange={e => setDob(e.target.value)}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -330,8 +543,12 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
           outline: none;
           border-bottom-color: var(--color-primary);
         }
+        @keyframes slideUpSheet {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
       `}</style>
-    </div>
+    </>
   );
 }
 
@@ -367,13 +584,19 @@ async function compressImage(file: File): Promise<File | Blob> {
 }
 
 // ─── Create Post Modal ────────────────────────────────────
-function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreated: (p: Post) => void }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState('');
+function CreatePostModal({ onClose, onCreated, acceptType = 'image/*,video/*', initialFile }: { onClose: () => void; onCreated: (p: Post) => void; acceptType?: string; initialFile?: File }) {
+  const [file, setFile] = useState<File | null>(initialFile || null);
+  const [preview, setPreview] = useState(initialFile ? URL.createObjectURL(initialFile) : '');
   const [caption, setCaption] = useState('');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Lock body scroll
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
 
   useEffect(() => {
     return () => { if (preview) URL.revokeObjectURL(preview); };
@@ -422,11 +645,18 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
     <div className="modal-overlay" onClick={loading ? undefined : onClose}>
       <div className="modal animate-scale-in" style={{ maxWidth: file ? 800 : 420 }} onClick={e => e.stopPropagation()} id="create-post-modal">
         <div className="modal-header" style={{ borderBottom: '1px solid var(--color-border)', padding: '12px 16px', display: 'flex', alignItems: 'center' }}>
-          {!loading && <button className="icon-btn" onClick={onClose} style={{ border: 'none', background: 'none' }}><X size={24} /></button>}
+          {!loading && (
+            <button
+              style={{ background: 'none', border: 'none', fontSize: 14, color: 'var(--color-text-2)', fontWeight: 600, cursor: 'pointer', minWidth: 56 }}
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+          )}
           <h3 style={{ fontWeight: 700, fontSize: 16, flex: 1, textAlign: 'center' }}>Create new post</h3>
           <button 
             className="btn btn-ghost" 
-            style={{ border: 'none', background: 'none', fontSize: 14, color: file ? 'var(--color-primary)' : 'var(--color-text-3)', fontWeight: 700 }} 
+            style={{ border: 'none', background: 'none', fontSize: 14, color: file ? 'var(--color-primary)' : 'var(--color-text-3)', fontWeight: 700, minWidth: 56 }} 
             onClick={handleCreate} 
             disabled={loading || !file}
           >
@@ -475,7 +705,7 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
               </div>
             </div>
           )}
-          <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFile} id="post-file-input" />
+          <input ref={fileRef} type="file" accept={acceptType} style={{ display: 'none' }} onChange={handleFile} id="post-file-input" />
 
           {loading && (
             <div className="upload-progress-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'white' }}>
@@ -572,12 +802,15 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [postTab, setPostTab] = useState<'all' | 'images' | 'videos'>('all');
-  const [modal, setModal] = useState<'followers' | 'following' | 'editProfile' | 'createPost' | 'settings' | 'confirmLogout' | null>(null);
+  const [modal, setModal] = useState<'followers' | 'following' | 'editProfile' | 'sharePost' | 'createPost' | 'settings' | 'confirmLogout' | null>(null);
+  const [postAcceptType, setPostAcceptType] = useState('image/*,video/*');
+  const [postInitialFile, setPostInitialFile] = useState<File | undefined>(undefined);
   const [followersList, setFollowersList] = useState<User[]>([]);
   const [followingList, setFollowingList] = useState<User[]>([]);
   const [meFollowingIds, setMeFollowingIds] = useState<Set<string>>(new Set());
   const [modalInitialTab, setModalInitialTab] = useState<'followers' | 'following'>('followers');
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const [showAvatarViewer, setShowAvatarViewer] = useState(false);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false, align: 'start' });
 
@@ -735,7 +968,11 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
         <div className="profile-header-top">
           {/* Avatar */}
           <div className="profile-avatar-container">
-            <div className="avatar-ring">
+            <div
+              className="avatar-ring"
+              onClick={() => avatarUrl && setShowAvatarViewer(true)}
+              style={avatarUrl ? { cursor: 'pointer' } : undefined}
+            >
               {avatarUrl
                 ? <img src={avatarUrl} alt={profile.name} className="avatar profile-avatar" />
                 : <div className="avatar profile-avatar profile-initial">{initial}</div>
@@ -763,6 +1000,20 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
         {/* Bio Section */}
         <div className="profile-bio-container">
           <h1 className="profile-display-name">{profile.name}</h1>
+          {(profile.occupation || profile.dob) && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', marginBottom: 4, marginTop: 2 }}>
+              {profile.occupation && (
+                <span style={{ fontSize: 13, color: 'var(--color-text-2)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  💼 {profile.occupation}
+                </span>
+              )}
+              {profile.dob && (
+                <span style={{ fontSize: 13, color: 'var(--color-text-2)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  🎂 {new Date(profile.dob).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+              )}
+            </div>
+          )}
           {profile.bio && <p className="profile-bio-text">{profile.bio}</p>}
         </div>
 
@@ -773,7 +1024,7 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
               <button className="btn profile-action-btn" onClick={() => setModal('editProfile')} id="edit-profile-btn">
                 Edit profile
               </button>
-              <button className="btn profile-action-btn" onClick={() => setModal('createPost')} id="create-post-btn">
+              <button className="btn profile-action-btn" onClick={() => setModal('sharePost')} id="create-post-btn">
                 Share post
               </button>
             </>
@@ -873,10 +1124,23 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
         />
       )}
 
+      {modal === 'sharePost' && (
+        <SharePostSheet
+          onFileSelected={(file, accept) => {
+            setPostAcceptType(accept);
+            setPostInitialFile(file);
+            setModal('createPost');
+          }}
+          onCancel={() => setModal(null)}
+        />
+      )}
+
       {modal === 'createPost' && (
         <CreatePostModal
-          onClose={() => setModal(null)}
-          onCreated={(post) => setPosts(prev => [post, ...prev])}
+          onClose={() => { setModal(null); setPostInitialFile(undefined); }}
+          onCreated={(post) => { setPosts(prev => [post, ...prev]); setPostInitialFile(undefined); }}
+          acceptType={postAcceptType}
+          initialFile={postInitialFile}
         />
       )}
 
@@ -905,6 +1169,42 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
             if (posts.length <= 1) setLightboxIdx(null);
           }}
         />
+      )}
+      {showAvatarViewer && avatarUrl && (
+        <div
+          onClick={() => setShowAvatarViewer(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 2000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(18px)',
+            WebkitBackdropFilter: 'blur(18px)',
+            animation: 'fadeIn 0.2s ease',
+            cursor: 'pointer',
+          }}
+        >
+          <img
+            src={avatarUrl}
+            alt={profile.name}
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: 'min(80vw, 320px)',
+              height: 'min(80vw, 320px)',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '3px solid rgba(255,255,255,0.15)',
+              boxShadow: '0 8px 48px rgba(0,0,0,0.6)',
+              animation: 'avatarPop 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+              cursor: 'default',
+            }}
+          />
+          <style>{`
+            @keyframes avatarPop {
+              from { opacity: 0; transform: scale(0.7); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+        </div>
       )}
     </div>
   );

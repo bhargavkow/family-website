@@ -14,6 +14,8 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     password: { type: String, required: true, minlength: 6 },
     bio: { type: String, default: '', maxlength: 300 },
+    occupation: { type: String, default: '', maxlength: 100 },
+    dob: { type: Date, default: null },
     profilePhoto: {
       url: { type: String, default: '' },
       publicId: { type: String, default: '' },

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search as SearchIcon, X, Play } from 'lucide-react';
-import { apiSearchMembers, apiGetFeed } from '../api';
+import { Search as SearchIcon, X, Play, FolderOpen, ArrowLeft } from 'lucide-react';
+import { apiSearchMembers, apiGetFeed, apiGetMoments } from '../api';
+import type { Moment } from '../api';
 import type { User, Post } from '../types';
 import PostLightbox from '../components/PostLightbox';
 import './Search.css';
@@ -15,11 +16,354 @@ function useDebounce<T>(value: T, delay: number) {
   return debounced;
 }
 
+// ─── Moment Image Viewer ──────────────────────────────────
+function MomentViewer({ moment, onClose }: { moment: Moment; onClose: () => void }) {
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  const images = moment.images;
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 2000,
+      background: 'var(--color-bg)',
+      display: 'flex', flexDirection: 'column',
+      animation: 'slideInRight 0.25s cubic-bezier(0.32,0.72,0,1)',
+      overflowY: 'auto',
+    }}>
+      {/* Hero header with cover */}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        {/* Cover photo or gradient bg */}
+        <div style={{
+          height: 220,
+          background: moment.coverImage?.url
+            ? 'none'
+            : 'linear-gradient(135deg, #1a1a2e, #16213e, #0f3460)',
+          overflow: 'hidden',
+          position: 'relative',
+        }}>
+          {moment.coverImage?.url && (
+            <img
+              src={moment.coverImage.url}
+              alt={moment.name}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          )}
+          {/* Dark gradient */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.6) 100%)',
+          }} />
+          {/* Back button */}
+          <button
+            onClick={onClose}
+            style={{
+              position: 'absolute', top: 14, left: 14,
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'rgba(0,0,0,0.45)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: '#fff', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <ArrowLeft size={18} strokeWidth={2.5} />
+          </button>
+
+          {/* Album info at bottom of hero */}
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0,
+            padding: '12px 16px 16px',
+          }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>
+              {moment.name}
+            </div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 4, fontWeight: 500 }}>
+              {images.length} photo{images.length !== 1 ? 's' : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Photo grid */}
+      <div style={{ flex: 1, padding: 2, paddingBottom: 40 }}>
+        {images.length === 0 ? (
+          <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-2)' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
+            <p style={{ fontWeight: 600, color: 'var(--color-text)', margin: '0 0 6px' }}>No photos yet</p>
+            <p style={{ fontSize: 13, margin: 0 }}>This album is empty.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+            {images.map((img, i) => (
+              <div
+                key={img._id}
+                onClick={() => setLightboxIdx(i)}
+                style={{
+                  aspectRatio: '1', overflow: 'hidden',
+                  cursor: 'pointer', position: 'relative',
+                  background: 'var(--color-surface-2)',
+                }}
+              >
+                <img
+                  src={img.url}
+                  alt={img.caption || moment.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Full-screen image lightbox */}
+      {lightboxIdx !== null && (
+        <div
+          onClick={() => setLightboxIdx(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 3000,
+            background: 'rgba(0,0,0,0.97)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <img
+            src={images[lightboxIdx].url}
+            alt=""
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: '100vw', maxHeight: '90vh', objectFit: 'contain' }}
+          />
+          {/* Prev */}
+          {lightboxIdx > 0 && (
+            <button
+              onClick={e => { e.stopPropagation(); setLightboxIdx(lightboxIdx - 1); }}
+              style={{
+                position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(6px)',
+                border: 'none', borderRadius: '50%',
+                width: 44, height: 44, color: '#fff', fontSize: 24, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >‹</button>
+          )}
+          {/* Next */}
+          {lightboxIdx < images.length - 1 && (
+            <button
+              onClick={e => { e.stopPropagation(); setLightboxIdx(lightboxIdx + 1); }}
+              style={{
+                position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(6px)',
+                border: 'none', borderRadius: '50%',
+                width: 44, height: 44, color: '#fff', fontSize: 24, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >›</button>
+          )}
+          {/* Counter */}
+          <div style={{
+            position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
+            borderRadius: 20, padding: '4px 14px',
+            fontSize: 13, fontWeight: 600, color: '#fff',
+          }}>
+            {lightboxIdx + 1} / {images.length}
+          </div>
+          {/* Close */}
+          <button
+            onClick={() => setLightboxIdx(null)}
+            style={{
+              position: 'absolute', top: 14, right: 14,
+              background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(6px)',
+              border: 'none', borderRadius: '50%',
+              width: 36, height: 36, color: '#fff', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+            }}
+          >✕</button>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to   { transform: translateX(0); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ─── Special Moments Grid ─────────────────────────────────
+function SpecialMomentsSection() {
+  const [moments, setMoments] = useState<Moment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [openMoment, setOpenMoment] = useState<Moment | null>(null);
+
+  useEffect(() => {
+    apiGetMoments()
+      .then(res => setMoments(res.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
+      <div className="spinner" />
+    </div>
+  );
+
+  if (moments.length === 0) return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      padding: '80px 20px', gap: 12,
+    }}>
+      <div style={{
+        width: 72, height: 72, borderRadius: 24,
+        background: 'var(--color-surface-2)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 36,
+      }}>📷</div>
+      <p style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text)', margin: 0 }}>No Albums Yet</p>
+      <p style={{ fontSize: 14, color: 'var(--color-text-2)', margin: 0, textAlign: 'center' }}>
+        Special moments will appear here once the admin adds them.
+      </p>
+    </div>
+  );
+
+  return (
+    <>
+      <div style={{ padding: '16px 14px 80px' }}>
+        {/* Section header */}
+        <div style={{ marginBottom: 16, paddingLeft: 2 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-text)', margin: '0 0 2px' }}>Special Moments</h3>
+          <p style={{ fontSize: 13, color: 'var(--color-text-2)', margin: 0 }}>{moments.length} album{moments.length !== 1 ? 's' : ''}</p>
+        </div>
+
+        {/* Album grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 12,
+        }}>
+          {moments.map((m, idx) => {
+            const previews = m.images.slice(0, 4);
+            const isFirst = idx === 0;
+            return (
+              <div
+                key={m._id}
+                onClick={() => setOpenMoment(m)}
+                style={{
+                  gridColumn: isFirst ? '1 / -1' : undefined,
+                  borderRadius: 18,
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  background: 'var(--color-surface-2)',
+                  aspectRatio: isFirst ? '16/9' : '1',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.25)',
+                }}
+              >
+                {/* Cover / collage */}
+                {m.coverImage?.url || previews.length > 0 ? (
+                  <>
+                    {/* Main cover */}
+                    <img
+                      src={m.coverImage?.url || previews[0]?.url}
+                      alt={m.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                    {/* Small preview strip (only if no cover and multiple images) */}
+                    {!m.coverImage?.url && previews.length > 1 && (
+                      <div style={{
+                        position: 'absolute', bottom: 0, right: 0,
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: 1,
+                        width: '35%', height: '35%',
+                      }}>
+                        {previews.slice(1, 5).map(img => (
+                          <img key={img._id} src={img.url} alt=""
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{
+                    width: '100%', height: '100%',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                    gap: 8, color: 'var(--color-text-2)',
+                    background: 'linear-gradient(135deg, var(--color-surface), var(--color-surface-2))',
+                  }}>
+                    <FolderOpen size={36} />
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>Empty album</span>
+                  </div>
+                )}
+
+                {/* Gradient overlay */}
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.15) 45%, transparent 70%)',
+                  pointerEvents: 'none',
+                }} />
+
+                {/* Photo count badge */}
+                <div style={{
+                  position: 'absolute', top: 10, right: 10,
+                  background: 'rgba(0,0,0,0.55)',
+                  backdropFilter: 'blur(8px)',
+                  borderRadius: 20,
+                  padding: '3px 10px',
+                  fontSize: 11, fontWeight: 700, color: '#fff',
+                  letterSpacing: 0.3,
+                }}>
+                  {m.images.length} 📷
+                </div>
+
+                {/* Name + count */}
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0,
+                  padding: isFirst ? '20px 16px 16px' : '12px 10px 10px',
+                }}>
+                  <div style={{
+                    fontSize: isFirst ? 18 : 14,
+                    fontWeight: 800,
+                    color: '#fff',
+                    textShadow: '0 1px 6px rgba(0,0,0,0.5)',
+                    lineHeight: 1.2,
+                  }}>{m.name}</div>
+                  <div style={{
+                    fontSize: isFirst ? 13 : 11,
+                    color: 'rgba(255,255,255,0.75)',
+                    marginTop: 3, fontWeight: 500,
+                  }}>
+                    {m.images.length} photo{m.images.length !== 1 ? 's' : ''}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {openMoment && (
+        <MomentViewer moment={openMoment} onClose={() => setOpenMoment(null)} />
+      )}
+    </>
+  );
+}
+
+// ─── Main Search Page ─────────────────────────────────────
 export default function Search() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
+  const [exploreTab, setExploreTab] = useState<'posts' | 'moments'>('posts');
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
@@ -51,10 +395,10 @@ export default function Search() {
 
   useEffect(() => { loadPosts(1); }, []);
 
-  // Infinite scroll
+  // Infinite scroll for posts
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore && !postsLoading && !query) {
+      if (entries[0].isIntersecting && hasMore && !postsLoading && !query && exploreTab === 'posts') {
         const next = page + 1;
         setPage(next);
         loadPosts(next);
@@ -62,11 +406,11 @@ export default function Search() {
     }, { threshold: 0.1 });
     if (loaderRef.current) observer.observe(loaderRef.current);
     return () => observer.disconnect();
-  }, [hasMore, postsLoading, page, query]);
+  }, [hasMore, postsLoading, page, query, exploreTab]);
 
   return (
     <div className="page search-page">
-      {/* ── Search Bar ───────────────────────────────── */}
+      {/* ── Search Bar ─────────────────────────────── */}
       <div className="search-bar-wrap">
         <div className="search-bar">
           <SearchIcon size={18} className="search-icon" />
@@ -87,7 +431,7 @@ export default function Search() {
         </div>
       </div>
 
-      {/* ── Member Results ────────────────────────────── */}
+      {/* ── Member Results ──────────────────────────── */}
       {query && (
         <div className="search-results">
           {searching ? (
@@ -118,42 +462,121 @@ export default function Search() {
         </div>
       )}
 
-      {/* ── Explore Gallery ───────────────────────────── */}
+      {/* ── Explore Section ─────────────────────────── */}
       {!query && (
         <>
-          <div className="explore-header">
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-2)' }}>Explore Posts</h2>
-          </div>
-          <div className="explore-grid">
-            {postsLoading && posts.length === 0
-              ? Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="skeleton explore-item" />
-                ))
-              : posts.map((post, i) => (
-                  <div
-                    key={post._id}
-                    className="explore-item"
-                    onClick={() => setLightboxIdx(i)}
-                    id={`explore-${post._id}`}
-                  >
-                    {post.mediaType === 'video'
-                      ? <video src={post.mediaUrl} className="explore-media" muted />
-                      : <img src={post.mediaUrl} alt={post.caption} className="explore-media" loading="lazy" />
-                    }
-                    <div className="explore-overlay">
-                      {post.mediaType === 'video' && <Play size={20} fill="white" color="white" />}
-                      <span>❤️ {post.likes?.length || 0}</span>
-                    </div>
-                  </div>
-                ))
-            }
+          {/* Tab Bar */}
+          <div style={{
+            display: 'flex',
+            borderBottom: '1px solid var(--color-border)',
+            marginBottom: 2,
+          }}>
+            <button
+              onClick={() => setExploreTab('posts')}
+              style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                gap: 3, padding: '10px 0',
+                background: 'none', border: 'none', cursor: 'pointer',
+                borderBottom: exploreTab === 'posts' ? '2px solid var(--color-text)' : '2px solid transparent',
+                marginBottom: -1,
+              }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill={exploreTab === 'posts' ? 'var(--color-text)' : 'none'} stroke={exploreTab === 'posts' ? 'var(--color-text)' : 'var(--color-text-2)'} strokeWidth="1.8">
+                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+              </svg>
+              <span style={{ fontSize: 10, fontWeight: 600, color: exploreTab === 'posts' ? 'var(--color-text)' : 'var(--color-text-2)', letterSpacing: 0.3 }}>POSTS</span>
+            </button>
+
+            <button
+              onClick={() => setExploreTab('moments')}
+              style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                gap: 3, padding: '10px 0',
+                background: 'none', border: 'none', cursor: 'pointer',
+                borderBottom: exploreTab === 'moments' ? '2px solid var(--color-text)' : '2px solid transparent',
+                marginBottom: -1,
+              }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={exploreTab === 'moments' ? 'var(--color-text)' : 'var(--color-text-2)'} strokeWidth="1.8">
+                <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+                <path d="M8 3v4M16 3v4M3 10h18"/>
+              </svg>
+              <span style={{ fontSize: 10, fontWeight: 600, color: exploreTab === 'moments' ? 'var(--color-text)' : 'var(--color-text-2)', letterSpacing: 0.3 }}>MOMENTS</span>
+            </button>
           </div>
 
-          <div ref={loaderRef} style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {!hasMore && posts.length > 0 && (
-              <p style={{ color: 'var(--color-text-2)', fontSize: 13 }}>You've seen it all!</p>
-            )}
-          </div>
+          {/* Explore Posts Grid — 3-col masonry */}
+          {exploreTab === 'posts' && (
+            <>
+              {postsLoading && posts.length === 0 ? (
+                <div style={{ display: 'flex', gap: 2, padding: 0 }}>
+                  {[0, 1, 2].map(col => (
+                    <div key={col} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} style={{
+                          width: '100%',
+                          height: (i + col) % 2 === 0 ? 160 : 120,
+                          background: 'var(--color-surface-2)',
+                          animation: 'pulse 1.5s ease-in-out infinite',
+                        }} />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                  {[0, 1, 2].map(col => (
+                    <div key={col} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {posts
+                        .filter((_, i) => i % 3 === col)
+                        .map((post, localIdx) => {
+                          const globalIdx = localIdx * 3 + col;
+                          return (
+                            <div
+                              key={post._id}
+                              id={`explore-${post._id}`}
+                              onClick={() => setLightboxIdx(globalIdx)}
+                              style={{ position: 'relative', cursor: 'pointer', overflow: 'hidden' }}
+                            >
+                              {post.mediaType === 'video' ? (
+                                <video
+                                  src={post.mediaUrl}
+                                  style={{ width: '100%', display: 'block' }}
+                                  muted playsInline
+                                />
+                              ) : (
+                                <img
+                                  src={post.mediaUrl}
+                                  alt={post.caption}
+                                  style={{ width: '100%', display: 'block' }}
+                                  loading="lazy"
+                                />
+                              )}
+                              {post.mediaType === 'video' && (
+                                <div style={{ position: 'absolute', top: 5, right: 5 }}>
+                                  <Play size={13} fill="white" color="white" />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div ref={loaderRef} style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {!hasMore && posts.length > 0 && (
+                  <p style={{ color: 'var(--color-text-2)', fontSize: 13 }}>You've seen it all!</p>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Special Moments Grid */}
+          {exploreTab === 'moments' && <SpecialMomentsSection />}
         </>
       )}
 
