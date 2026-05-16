@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Quote, Calendar, ChevronDown, ChevronRight, Sparkles, PartyPopper, Crown } from 'lucide-react';
-import { apiGetMembers } from '../api';
-import type { User } from '../types';
+import { Quote, Calendar, ChevronDown, ChevronRight, Sparkles, Crown, Cake } from 'lucide-react';
+import { apiGetMembers, apiGetEvents } from '../api';
+import type { User, FamilyEvent } from '../types';
 import './Members.css';
 
 const dailyThoughts = [
   "Family is where life begins and love never ends.",
   "The most important thing in the world is family and love.",
-  "In family life, love is the oil that eases friction, the cement that binds closer together, and the music that brings harmony.",
+  // "In family life, love is the oil that eases friction, the cement that binds closer together, and the music that brings harmony.",
   "Family is not an important thing. It's everything.",
   "Other things may change us, but we start and end with the family.",
   "A happy family is but an earlier heaven.",
@@ -17,7 +17,7 @@ const dailyThoughts = [
   "Family and friends are hidden treasures, seek them out and enjoy their riches.",
   "Home is where you are loved the most and act the worst.",
   "The strength of a family, like the strength of an army, lies in its loyalty to each other.",
-  "Being a family means you are a part of something very wonderful. It means you will love and be loved for the rest of your life.",
+  // "Being a family means you are a part of something very wonderful. It means you will love and be loved for the rest of your life.",
   "To us, family means putting your arms around each other and being there.",
   "Family is the heart of a home.",
   "A house is made of bricks and beams. A home is made of love and dreams."
@@ -25,14 +25,18 @@ const dailyThoughts = [
 
 export default function Members() {
   const [members, setMembers] = useState<User[]>([]);
+  const [events, setEvents] = useState<FamilyEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAllBirthdays, setShowAllBirthdays] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    apiGetMembers()
-      .then(res => setMembers(res.data))
-      .catch(() => {})
+    Promise.all([apiGetMembers(), apiGetEvents()])
+      .then(([membersRes, eventsRes]) => {
+        setMembers(membersRes.data);
+        setEvents(eventsRes.data);
+      })
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -59,7 +63,8 @@ export default function Members() {
     .filter(m => m.dob)
     .sort((a, b) => getBirthdayScore(a) - getBirthdayScore(b));
 
-  const topUpcoming = sortedMembers.slice(0, 3);
+  const todayBirthdays = sortedMembers.filter(m => getBirthdayScore(m) === 0);
+  const topUpcoming = todayBirthdays.length > 0 ? todayBirthdays : sortedMembers.slice(0, 3);
 
   if (loading) return (
     <div className="page members-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -75,13 +80,13 @@ export default function Members() {
       </div>
 
       {/* ── Daily Thought Section ── */}
-      <section style={{ padding: '0 20px 24px' }}>
+      <section style={{ padding: '0 0 24px' }}>
         <div style={{
           background: 'var(--color-surface)',
-          borderRadius: 24,
-          padding: '16px 20px',
-          border: '1px solid var(--color-border)',
-          boxShadow: '0 12px 24px rgba(0,0,0,0.05)',
+          padding: '24px 20px',
+          borderTop: '1px solid var(--color-border)',
+          borderBottom: '1px solid var(--color-border)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
           position: 'relative',
           overflow: 'hidden'
         }}>
@@ -90,14 +95,14 @@ export default function Members() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <div style={{ width: 24, height: 24, borderRadius: 8, background: 'rgba(124, 92, 252, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
-               <Quote size={12} fill="currentColor" />
+              <Quote size={12} fill="currentColor" />
             </div>
             <span style={{ fontWeight: 800, fontSize: 11, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--color-primary)' }}>Thought of the Day</span>
           </div>
-          <p style={{ 
-            fontSize: 16, 
-            fontWeight: 700, 
-            lineHeight: 1.5, 
+          <p style={{
+            fontSize: 16,
+            fontWeight: 700,
+            lineHeight: 1.5,
             color: 'var(--color-text)',
             position: 'relative',
             zIndex: 1,
@@ -112,34 +117,34 @@ export default function Members() {
       <section style={{ padding: '0 20px 40px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ 
-              width: 44, 
-              height: 44, 
-              background: 'linear-gradient(135deg, #ff6b6b, #f06595)', 
-              borderRadius: 14, 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
+            <div style={{
+              width: 44,
+              height: 44,
+              background: 'linear-gradient(135deg, #7c5cfc, #a855f7)',
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               color: 'white',
-              boxShadow: '0 8px 16px rgba(255, 107, 107, 0.3)'
+              boxShadow: '0 8px 16px rgba(124, 92, 252, 0.3)'
             }}>
-              <PartyPopper size={24} className="animate-bounce" />
+              <Cake size={24} className="animate-pulse" />
             </div>
             <div>
               <h2 style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.5px', color: 'var(--color-text)' }}>Birthdays</h2>
               <p style={{ fontSize: 12, color: 'var(--color-text-2)', fontWeight: 600 }}>Celebrate our loved ones</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => setShowAllBirthdays(!showAllBirthdays)}
-            style={{ 
-              background: 'var(--color-surface-2)', 
-              border: 'none', 
+            style={{
+              background: 'var(--color-surface-2)',
+              border: 'none',
               width: 40,
               height: 40,
-              borderRadius: 14, 
-              display: 'flex', 
-              alignItems: 'center', 
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--color-text)',
               cursor: 'pointer',
@@ -164,32 +169,32 @@ export default function Members() {
                 const dob = new Date(m.dob!);
                 const today = new Date();
                 const isToday = dob.getDate() === today.getDate() && dob.getMonth() === today.getMonth();
-                
+
                 // Calculate days remaining
                 const bMonth = dob.getMonth();
                 const bDay = dob.getDate();
                 const tMonth = today.getMonth();
                 const tDay = today.getDate();
-                
+
                 let daysText = "";
                 if (isToday) daysText = "TODAY! 🥳";
                 else if (bMonth === tMonth && bDay === tDay + 1) daysText = "Tomorrow! ✨";
                 else {
-                   const monthsArr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                   daysText = `${monthsArr[bMonth]} ${bDay}`;
+                  const monthsArr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                  daysText = `${monthsArr[bMonth]} ${bDay}`;
                 }
 
                 return (
-                  <div 
-                    key={m._id} 
+                  <div
+                    key={m._id}
                     onClick={() => navigate(`/members/${m.username}`)}
                     className={isToday ? "birthday-card-today" : "birthday-card-upcoming"}
-                    style={{ 
+                    style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: 16,
                       padding: isToday ? '20px' : '16px',
-                      borderRadius: 24,
+                      borderRadius: 8,
                       cursor: 'pointer',
                       position: 'relative',
                       overflow: 'hidden',
@@ -206,7 +211,7 @@ export default function Members() {
                         <div className="birthday-shine" />
                       </>
                     )}
-                    
+
                     <div style={{ position: 'relative', flexShrink: 0 }}>
                       <div className={isToday ? "avatar-ring-animated" : ""}>
                         {m.profilePhoto?.url ? (
@@ -228,17 +233,17 @@ export default function Members() {
                     </div>
 
                     <div style={{ flex: 1, position: 'relative', zIndex: 1 }}>
-                      <div style={{ 
-                        fontWeight: 900, 
-                        fontSize: isToday ? 20 : 16, 
+                      <div style={{
+                        fontWeight: 900,
+                        fontSize: isToday ? 20 : 16,
                         color: isToday ? 'white' : 'var(--color-text)',
                         letterSpacing: '-0.3px',
                         textShadow: isToday ? '0 2px 4px rgba(0,0,0,0.2)' : 'none'
                       }}>
                         {m.name}
                       </div>
-                      <div style={{ 
-                        fontSize: isToday ? 14 : 13, 
+                      <div style={{
+                        fontSize: isToday ? 14 : 13,
                         fontWeight: 700,
                         color: isToday ? 'rgba(255,255,255,0.9)' : 'var(--color-primary)',
                         marginTop: 4,
@@ -252,14 +257,14 @@ export default function Members() {
                     </div>
 
                     {isToday && (
-                      <div 
-                        className="wish-btn" 
+                      <div
+                        className="wish-btn"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/messages/${m.username}`);
                         }}
                       >
-                         Wish Now
+                        Wish Now
                       </div>
                     )}
 
@@ -273,10 +278,10 @@ export default function Members() {
 
         {/* All Birthdays List (Expanded View) */}
         {showAllBirthdays && (
-          <div className="birthday-list-expanded" style={{ 
-            background: 'var(--color-surface)', 
-            borderRadius: 32, 
-            border: '1px solid var(--color-border)', 
+          <div className="birthday-list-expanded" style={{
+            background: 'var(--color-surface)',
+            borderRadius: 32,
+            border: '1px solid var(--color-border)',
             overflow: 'hidden',
             boxShadow: '0 24px 48px rgba(0,0,0,0.1)',
             animation: 'slideDownFade 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
@@ -288,13 +293,13 @@ export default function Members() {
               const dob = new Date(m.dob!);
               const isToday = dob.getDate() === new Date().getDate() && dob.getMonth() === new Date().getMonth();
               return (
-                <div 
-                  key={m._id} 
+                <div
+                  key={m._id}
                   onClick={() => navigate(`/members/${m.username}`)}
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    padding: '14px 20px', 
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '14px 20px',
                     gap: 14,
                     borderBottom: idx === sortedMembers.length - 1 ? 'none' : '1px solid var(--color-border-light)',
                     background: isToday ? 'rgba(124, 92, 252, 0.05)' : 'none',
@@ -325,6 +330,67 @@ export default function Members() {
                 </div>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      {/* ── Upcoming Events Section ── */}
+      <section style={{ padding: '0 20px 100px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(124, 92, 252, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
+            <Calendar size={16} strokeWidth={2.5} />
+          </div>
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-text)' }}>Upcoming Events</h3>
+        </div>
+
+        {events.length === 0 ? (
+          <div className="glass-card" style={{ padding: '32px 20px', textAlign: 'center', borderRadius: 28, color: 'var(--color-text-2)', border: '2px dashed var(--color-border)', background: 'rgba(0,0,0,0.02)' }}>
+            <Sparkles size={32} style={{ marginBottom: 12, opacity: 0.3, color: 'var(--color-primary)' }} />
+            <p style={{ fontWeight: 600 }}>No major events planned yet</p>
+            <p style={{ fontSize: 12, marginTop: 4 }}>Check back later for family gatherings!</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {events.map((ev) => (
+              <div key={ev._id} className="event-card" style={{
+                background: 'var(--color-surface)',
+                borderRadius: 24,
+                overflow: 'hidden',
+                border: '1px solid var(--color-border)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.05)',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                {ev.photo?.url && (
+                  <div style={{ width: '100%', height: 160, overflow: 'hidden' }}>
+                    <img src={ev.photo.url} alt={ev.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                )}
+                <div style={{ padding: '16px 20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ fontWeight: 800, fontSize: 17, color: 'var(--color-text)', marginBottom: 2 }}>{ev.name}</h4>
+                      <p style={{ fontSize: 13, color: 'var(--color-text-2)', lineHeight: 1.4 }}>{ev.description}</p>
+                    </div>
+                    <div style={{
+                      padding: '6px 10px',
+                      borderRadius: 12,
+                      background: 'rgba(124, 92, 252, 0.1)',
+                      color: 'var(--color-primary)',
+                      textAlign: 'center',
+                      minWidth: 50
+                    }}>
+                      <div style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase' }}>
+                        {new Date(ev.date).toLocaleDateString('en-US', { month: 'short' })}
+                      </div>
+                      <div style={{ fontSize: 18, fontWeight: 900 }}>
+                        {new Date(ev.date).getDate()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>

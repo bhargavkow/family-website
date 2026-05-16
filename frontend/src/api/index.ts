@@ -1,5 +1,5 @@
 import client from './client';
-import type { User, Post, Message, Conversation } from '../types';
+import type { User, Post, Message, Conversation, FamilyEvent } from '../types';
 
 // ─── Auth ────────────────────────────────────────────────
 export const apiLogin = (username: string, password: string) =>
@@ -112,3 +112,10 @@ export const apiAdminDeleteMomentImage = (id: string, imgId: string) =>
 
 export const apiAdminDeleteMoment = (id: string) =>
   client.delete(`/moments/${id}`);
+// ─── Events ──────────────────────────────────────────────
+export const apiGetEvents = () => client.get<FamilyEvent[]>('/events');
+export const apiCreateEvent = (data: FormData) =>
+  client.post<FamilyEvent>('/events', data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+export const apiDeleteEvent = (id: string) => client.delete(`/events/${id}`);

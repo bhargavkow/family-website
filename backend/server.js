@@ -39,6 +39,7 @@ app.use('/api/messages', require('./src/routes/messages'));
 app.use('/api/search', require('./src/routes/search'));
 app.use('/api/admin', require('./src/routes/admin'));
 app.use('/api/moments', require('./src/routes/moments'));
+app.use('/api/events', require('./src/routes/events'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));

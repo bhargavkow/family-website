@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Users, Image, MessageCircle, TrendingUp,
   Plus, Trash2, Eye, ToggleLeft, ToggleRight, X, LogOut, Lock, Shield, Edit3,
-  LayoutDashboard, FolderOpen, FolderPlus, ArrowLeft, Upload
+  LayoutDashboard, FolderOpen, FolderPlus, ArrowLeft, Upload, Calendar
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -12,14 +12,15 @@ import {
   apiAdminGetPosts, apiAdminDeletePost, apiAdminUpdateMember,
   apiGetMoments, apiAdminCreateMoment, apiAdminAddMomentImages,
   apiAdminDeleteMomentImage, apiAdminDeleteMoment,
+  apiGetEvents, apiCreateEvent, apiDeleteEvent
 } from '../api';
 import type { Moment } from '../api';
-import type { User, Post } from '../types';
+import type { User, Post, FamilyEvent } from '../types';
 import PostLightbox from '../components/PostLightbox';
 import toast from 'react-hot-toast';
 import './Admin.css';
 
-type Tab = 'overview' | 'members' | 'posts' | 'moments';
+type Tab = 'overview' | 'members' | 'posts' | 'moments' | 'events';
 
 interface Stats {
   totalMembers: number;
@@ -277,8 +278,204 @@ function AdminLoginGate({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
+// ─── Utils ────────────────────────────────────────────────
+async function compressImage(file: File): Promise<File | Blob> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.src = e.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const MAX_SIZE = 1200;
+        if (width > height && width > MAX_SIZE) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        } else if (height > MAX_SIZE) {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+          } else {
+            resolve(file);
+          }
+        }, 'image/jpeg', 0.7);
+      };
+    };
+  });
+}
+
 // ─── Main Admin Dashboard ──────────────────────────────────
+// ─── Manage Events ───────────────────────────────────────
+function ManageEvents() {
+  const [events, setEvents] = useState<FamilyEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<FamilyEvent | null>(null);
+  const [form, setForm] = useState({ name: '', description: '', date: '' });
+  const [photo, setPhoto] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    apiGetEvents().then(res => setEvents(res.data)).finally(() => setLoading(false));
+  }, []);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      const fd = new FormData();
+      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+      
+      if (photo) {
+        const compressed = await compressImage(photo);
+        fd.append('photo', compressed);
+      }
+      
+      const res = await apiCreateEvent(fd);
+      setEvents(prev => [...prev, res.data]);
+      setShowAdd(false);
+      setForm({ name: '', description: '', date: '' });
+      setPhoto(null);
+      toast.success('Event created!');
+    } catch {
+      toast.error('Failed to create event');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    const id = confirmDelete._id;
+    setDeletingId(id);
+    setConfirmDelete(null);
+    try {
+      await apiDeleteEvent(id);
+      setEvents(prev => prev.filter(e => e._id !== id));
+      toast.success('Event deleted');
+    } catch {
+      toast.error('Failed to delete event');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (loading) return <div className="admin-loading"><div className="spinner" /></div>;
+
+  return (
+    <div className="admin-view animate-fade-in">
+      <div className="admin-view-header">
+        <div>
+          <h2 className="admin-view-title">Family Events</h2>
+          <p className="admin-view-subtitle">Manage upcoming celebrations and gatherings</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+          <Plus size={18} /> Add Event
+        </button>
+      </div>
+
+      <div className="admin-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+        {events.map(ev => (
+          <div key={ev._id} className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
+            {ev.photo?.url && <img src={ev.photo.url} alt="" style={{ width: '100%', height: 140, objectFit: 'cover' }} />}
+            <div style={{ padding: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <h4 style={{ fontWeight: 700 }}>{ev.name}</h4>
+                <span style={{ fontSize: 12, color: 'var(--color-primary)', fontWeight: 700 }}>
+                  {new Date(ev.date).toLocaleDateString()}
+                </span>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--color-text-2)', marginBottom: 16 }}>{ev.description}</p>
+              <button 
+                className="btn btn-danger btn-sm w-full" 
+                onClick={() => setConfirmDelete(ev)}
+                disabled={deletingId === ev._id}
+              >
+                {deletingId === ev._id ? (
+                  <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                ) : (
+                  <><Trash2 size={14} /> Delete</>
+                )}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {showAdd && (
+        <div className="modal-overlay" onClick={() => setShowAdd(false)}>
+          <div className="modal animate-scale-in" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
+            <div className="modal-header">
+              <h3>Create Family Event</h3>
+              <button className="icon-btn" onClick={() => setShowAdd(false)}><X size={20} /></button>
+            </div>
+            <form className="modal-body" onSubmit={handleCreate}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div>
+                  <label className="label">Event Banner</label>
+                  <button type="button" className="btn btn-ghost w-full" onClick={() => fileRef.current?.click()}>
+                    📷 {photo ? photo.name : 'Choose Photo'}
+                  </button>
+                  <input ref={fileRef} type="file" hidden onChange={e => setPhoto(e.target.files?.[0] || null)} />
+                </div>
+                <div>
+                  <label className="label">Event Name</label>
+                  <input className="input" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. Family Trip 2024" />
+                </div>
+                <div>
+                  <label className="label">Event Date</label>
+                  <input className="input" type="date" required value={form.date} onChange={e => setForm({...form, date: e.target.value})} />
+                </div>
+                <div>
+                  <label className="label">Description</label>
+                  <textarea className="input" required rows={3} value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="What's happening?" />
+                </div>
+                <button type="submit" className="btn btn-primary w-full" disabled={creating}>
+                  {creating ? <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : 'Create Event'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {confirmDelete && (
+        <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>
+          <div className="modal animate-scale-in admin-confirm-modal" onClick={e => e.stopPropagation()}>
+            <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+              <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-error)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <Trash2 size={28} />
+              </div>
+              <h3 style={{ fontWeight: 800, fontSize: 18, marginBottom: 8 }}>Delete Event?</h3>
+              <p style={{ color: 'var(--color-text-2)', fontSize: 14, lineHeight: 1.5 }}>
+                Are you sure you want to delete "<strong>{confirmDelete.name}</strong>"? This action cannot be undone.
+              </p>
+            </div>
+            <div className="admin-confirm-actions" style={{ display: 'flex', gap: 12, padding: '0 10px 10px' }}>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="btn btn-danger" style={{ flex: 1 }} onClick={handleDelete}>Delete Now</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Admin() {
+
   const { user, loading: authLoading, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -423,6 +620,9 @@ export default function Admin() {
             </button>
             <button className={`admin-nav-item ${tab === 'moments' ? 'active' : ''}`} onClick={() => handleNav('moments')}>
               <FolderOpen size={18} /> Special Moments
+            </button>
+            <button className={`admin-nav-item ${tab === 'events' ? 'active' : ''}`} onClick={() => handleNav('events')}>
+              <Calendar size={18} /> Events
             </button>
           </nav>
         </div>
@@ -693,6 +893,7 @@ export default function Admin() {
             )}
           </div>
         )}
+        {tab === 'events' && <ManageEvents />}
       </main>
 
       {/* Modals */}

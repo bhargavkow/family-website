@@ -48,3 +48,11 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
 }
+export interface FamilyEvent {
+  _id: string;
+  name: string;
+  description: string;
+  photo?: { url: string; publicId: string };
+  date: string;
+  createdAt: string;
+}
