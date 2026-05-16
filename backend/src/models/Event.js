@@ -24,4 +24,6 @@ const eventSchema = new mongoose.Schema({
   }
 });
 
+eventSchema.index({ date: 1 });
+
 module.exports = mongoose.model('Event', eventSchema);

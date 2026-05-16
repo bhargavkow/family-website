@@ -3,6 +3,7 @@ const Post = require('../models/Post');
 const { auth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const cloudinary = require('../config/cloudinary');
+const cache = require('../config/redis');
 
 const router = express.Router();
 
@@ -22,6 +23,8 @@ router.post('/', auth, upload.single('media'), async (req, res) => {
     });
 
     await post.populate('author', 'username name profilePhoto');
+    // Clear feed cache (just first page for now)
+    await cache.del('posts:feed:1:20'); 
     res.status(201).json(post);
   } catch (err) {
     console.error(err);
@@ -36,6 +39,12 @@ router.get('/feed', async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
+    const cacheKey = `posts:feed:${page}:${limit}`;
+    if (cache) {
+      const cached = await cache.get(cacheKey);
+      if (cached) return res.json(JSON.parse(cached));
+    }
+
     const posts = await Post.find()
       .populate('author', 'username name profilePhoto isActive')
       .sort({ createdAt: -1 })
@@ -46,7 +55,11 @@ router.get('/feed', async (req, res) => {
     const activePosts = posts.filter(p => p.author?.isActive);
     const total = await Post.countDocuments();
 
-    res.json({ posts: activePosts, total, page, pages: Math.ceil(total / limit) });
+    const response = { posts: activePosts, total, page, pages: Math.ceil(total / limit) };
+    
+    // Cache for 2 minutes
+    await cache.set(cacheKey, JSON.stringify(response), 120);
+    res.json(response);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -106,6 +119,7 @@ router.delete('/:id', auth, async (req, res) => {
     });
 
     await post.deleteOne();
+    await cache.del('posts:feed:1:20');
     res.json({ message: 'Post deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });

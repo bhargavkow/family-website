@@ -28,6 +28,10 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Indexes for faster lookups
+userSchema.index({ dob: 1 });
+userSchema.index({ isActive: 1 });
+
 // Hash password before saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();

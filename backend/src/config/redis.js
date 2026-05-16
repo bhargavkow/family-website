@@ -10,6 +10,10 @@ if (process.env.REDIS_URL) {
 
   redis.connect().catch(() => {
     console.warn('⚠️  Redis unavailable — running without cache.');
+    // Only show tip if the URL is clearly an internal one (no domain)
+    if (process.env.REDIS_URL && !process.env.REDIS_URL.includes('.com')) {
+      console.info('💡 Tip: Your REDIS_URL looks like a Render Internal URL. If running locally, please use the External Redis URL.');
+    }
     redis = null;
   });
 } else {

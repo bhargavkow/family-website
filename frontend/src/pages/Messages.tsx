@@ -43,6 +43,7 @@ export default function Messages() {
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [view, setView] = useState<'list' | 'chat'>('list');
+  const [listLoading, setListLoading] = useState(true);
   const [swipeX, setSwipeX] = useState(0);
   const touchStart = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -55,6 +56,7 @@ export default function Messages() {
       const res = await apiGetConversations();
       setConversations(res.data);
     } catch { /* no-op */ }
+    finally { setListLoading(false); }
   };
 
   useEffect(() => { loadConversations(); }, []);
@@ -249,7 +251,17 @@ export default function Messages() {
           </div>
         )}
         <div className="conv-list">
-          {conversations.length === 0 ? null : conversations.map(conv => (
+          {listLoading ? (
+            Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="conv-item" style={{ borderBottom: '1px solid var(--color-border-light)' }}>
+                <div className="skeleton" style={{ width: 54, height: 54, borderRadius: '50%', flexShrink: 0 }} />
+                <div className="conv-info">
+                  <div className="skeleton" style={{ width: '60%', height: 16, borderRadius: 4, marginBottom: 8 }} />
+                  <div className="skeleton" style={{ width: '85%', height: 14, borderRadius: 4 }} />
+                </div>
+              </div>
+            ))
+          ) : conversations.length === 0 ? null : conversations.map(conv => (
             <div key={conv.partner._id} className={`conv-item ${activeUser?._id === conv.partner._id ? 'active' : ''}`} onClick={() => openChat(conv.partner)} id={`conv-${conv.partner.username}`}>
               {avatarEl(conv.partner)}
               <div className="conv-info">

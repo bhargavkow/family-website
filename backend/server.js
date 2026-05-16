@@ -4,8 +4,10 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./src/config/db');
+const compression = require('compression');
 
 const app = express();
+app.use(compression());
 const PORT = process.env.PORT || 5000;
 
 // Trust proxy for secure cookies on Render/Vercel

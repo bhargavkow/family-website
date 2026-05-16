@@ -73,11 +73,11 @@ function UserListModal({
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       style={{
-      position: 'fixed', inset: 0, zIndex: 2000,
-      background: 'var(--color-bg)',
-      display: 'flex', flexDirection: 'column',
-      animation: 'slideInRight 0.25s cubic-bezier(0.32,0.72,0,1)',
-    }}>
+        position: 'fixed', inset: 0, zIndex: 2000,
+        background: 'var(--color-bg)',
+        display: 'flex', flexDirection: 'column',
+        animation: 'slideInRight 0.25s cubic-bezier(0.32,0.72,0,1)',
+      }}>
       {/* ── Header ── */}
       <div style={{
         display: 'flex', alignItems: 'center',
@@ -623,14 +623,14 @@ function CreatePostModal({ onClose, onCreated, acceptType = 'image/*,video/*', i
       const fd = new FormData();
       fd.append('media', optimizedFile, file.name);
       fd.append('caption', caption);
-      
+
       const res = await apiCreatePost(fd, {
         onUploadProgress: (ev: any) => {
           const percent = Math.round((ev.loaded * 100) / ev.total);
           setProgress(percent);
         }
       });
-      
+
       onCreated(res.data);
       toast.success('Post shared successfully!');
       onClose();
@@ -656,10 +656,10 @@ function CreatePostModal({ onClose, onCreated, acceptType = 'image/*,video/*', i
             </button>
           )}
           <h3 style={{ fontWeight: 700, fontSize: 16, flex: 1, textAlign: 'center' }}>{file ? 'New post' : 'Create new post'}</h3>
-          <button 
-            className="btn btn-ghost" 
-            style={{ border: 'none', background: 'none', fontSize: 16, color: file ? 'var(--color-primary)' : 'var(--color-text-3)', fontWeight: 700, minWidth: 56, cursor: file ? 'pointer' : 'default' }} 
-            onClick={handleCreate} 
+          <button
+            className="btn btn-ghost"
+            style={{ border: 'none', background: 'none', fontSize: 16, color: file ? 'var(--color-primary)' : 'var(--color-text-3)', fontWeight: 700, minWidth: 56, cursor: file ? 'pointer' : 'default' }}
+            onClick={handleCreate}
             disabled={loading || !file}
           >
             {loading ? <div className="spinner" style={{ width: 16, height: 16 }} /> : 'Share'}
@@ -694,15 +694,15 @@ function CreatePostModal({ onClose, onCreated, acceptType = 'image/*,video/*', i
                   )}
                   <span style={{ fontWeight: 600, fontSize: 14 }}>{me?.username}</span>
                 </div>
-                <textarea 
-                  id="post-caption" 
-                  className="caption-input" 
-                  rows={10} 
-                  placeholder="Write a caption..." 
-                  value={caption} 
-                  onChange={e => setCaption(e.target.value)} 
-                  disabled={loading} 
-                  style={{ border: 'none', background: 'none', color: 'var(--color-text)', fontSize: 15, padding: 0, resize: 'none', flex: 1 }} 
+                <textarea
+                  id="post-caption"
+                  className="caption-input"
+                  rows={10}
+                  placeholder="Write a caption..."
+                  value={caption}
+                  onChange={e => setCaption(e.target.value)}
+                  disabled={loading}
+                  style={{ border: 'none', background: 'none', color: 'var(--color-text)', fontSize: 15, padding: 0, resize: 'none', flex: 1 }}
                 />
               </div>
             </div>
@@ -711,8 +711,8 @@ function CreatePostModal({ onClose, onCreated, acceptType = 'image/*,video/*', i
 
           {loading && (
             <div className="upload-progress-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'white' }}>
-               <div className="spinner" style={{ width: 40, height: 40, marginBottom: 16 }} />
-               <span>Sharing {progress}%</span>
+              <div className="spinner" style={{ width: 40, height: 40, marginBottom: 16 }} />
+              <span>Sharing {progress}%</span>
             </div>
           )}
         </div>
@@ -802,7 +802,6 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
   const [postTab, setPostTab] = useState<'all' | 'images' | 'videos'>('all');
   const [modal, setModal] = useState<'followers' | 'following' | 'editProfile' | 'sharePost' | 'createPost' | 'settings' | 'confirmLogout' | null>(null);
   const [postAcceptType, setPostAcceptType] = useState('image/*,video/*');
@@ -848,19 +847,40 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
 
   const handleFollow = async () => {
     if (!me) { navigate('/login?redirect=/members/' + username); return; }
-    setFollowLoading(true);
+
+    // Optimistic Update
+    const isUnfollowing = following;
+    setFollowing(!isUnfollowing);
+    setProfile(prev => {
+      if (!prev) return prev;
+      const currentFollowers = Array.isArray(prev.followers) ? prev.followers : [];
+      return {
+        ...prev,
+        followers: (isUnfollowing
+          ? currentFollowers.filter((f: any) => (f._id || f) !== me._id)
+          : [...currentFollowers, me]) as any
+      } as User;
+    });
+
     try {
       const res = await apiFollow(username!);
+      // Sync with server response just in case
       setFollowing(res.data.following);
-      setProfile(prev => prev ? {
-        ...prev,
-        followers: res.data.following
-          ? [...(prev.followers as any[]), me._id]
-          : (prev.followers as any[]).filter((f: any) => f._id !== me._id && f !== me._id)
-      } : prev);
-      toast.success(res.data.following ? 'Following!' : 'Unfollowed');
-    } catch { toast.error('Failed to follow'); }
-    finally { setFollowLoading(false); }
+    } catch {
+      // Revert on error
+      setFollowing(isUnfollowing);
+      setProfile(prev => {
+        if (!prev) return prev;
+        const currentFollowers = Array.isArray(prev.followers) ? prev.followers : [];
+        return {
+          ...prev,
+          followers: (isUnfollowing
+            ? [...currentFollowers, me]
+            : currentFollowers.filter((f: any) => (f._id || f) !== me._id)) as any
+        } as User;
+      });
+      toast.error('Failed to update follow status');
+    }
   };
 
   const openFollowers = async () => {
@@ -917,7 +937,30 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
   };
 
 
-  if (loading) return <div className="loading-screen"><div className="spinner spinner-lg" /></div>;
+  if (loading) return (
+    <div className="page profile-page" style={{ background: 'var(--color-bg)', minHeight: '100vh' }}>
+      <div style={{ padding: '44px 20px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 28, marginBottom: 24 }}>
+          <div className="skeleton" style={{ width: 86, height: 86, borderRadius: '50%' }} />
+          <div style={{ flex: 1 }}>
+            <div className="skeleton" style={{ width: '60%', height: 24, borderRadius: 6, marginBottom: 12 }} />
+            <div style={{ display: 'flex', gap: 20 }}>
+              <div className="skeleton" style={{ width: 40, height: 16, borderRadius: 4 }} />
+              <div className="skeleton" style={{ width: 40, height: 16, borderRadius: 4 }} />
+              <div className="skeleton" style={{ width: 40, height: 16, borderRadius: 4 }} />
+            </div>
+          </div>
+        </div>
+        <div className="skeleton" style={{ width: '40%', height: 18, borderRadius: 4, marginBottom: 8 }} />
+        <div className="skeleton" style={{ width: '80%', height: 14, borderRadius: 4 }} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, padding: '1px' }}>
+        {Array.from({ length: 9 }).map((_, i) => (
+          <div key={i} className="skeleton" style={{ aspectRatio: '1/1', borderRadius: 0 }} />
+        ))}
+      </div>
+    </div>
+  );
   if (!profile) return (
     <div className="empty-state" style={{ paddingTop: 80 }}>
       {me?.isAdmin ? (
@@ -1048,7 +1091,7 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
               <button
                 className={`btn profile-action-btn ${following ? 'following' : 'btn-primary'}`}
                 onClick={handleFollow}
-                disabled={followLoading}
+                disabled={following}
                 id="follow-btn"
               >
                 {following ? 'Following' : 'Follow'}
@@ -1084,30 +1127,30 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
         <div className="embla__container">
           {/* ALL POSTS */}
           <div className="embla__slide">
-            <PostGrid 
-              posts={posts} 
-              isOwn={isOwn} 
-              onDelete={handleDeletePost} 
+            <PostGrid
+              posts={posts}
+              isOwn={isOwn}
+              onDelete={handleDeletePost}
               onPostClick={(p) => setLightboxIdx(posts.indexOf(p))}
               emptyTitle="No Posts Yet"
             />
           </div>
           {/* IMAGES */}
           <div className="embla__slide">
-            <PostGrid 
-              posts={posts.filter(p => p.mediaType === 'image')} 
-              isOwn={isOwn} 
-              onDelete={handleDeletePost} 
+            <PostGrid
+              posts={posts.filter(p => p.mediaType === 'image')}
+              isOwn={isOwn}
+              onDelete={handleDeletePost}
               onPostClick={(p) => setLightboxIdx(posts.indexOf(p))}
               emptyTitle="No Photos Yet"
             />
           </div>
           {/* VIDEOS */}
           <div className="embla__slide">
-            <PostGrid 
-              posts={posts.filter(p => p.mediaType === 'video')} 
-              isOwn={isOwn} 
-              onDelete={handleDeletePost} 
+            <PostGrid
+              posts={posts.filter(p => p.mediaType === 'video')}
+              isOwn={isOwn}
+              onDelete={handleDeletePost}
               onPostClick={(p) => setLightboxIdx(posts.indexOf(p))}
               emptyTitle="No Videos Yet"
             />
@@ -1167,10 +1210,10 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
       )}
 
       {modal === 'confirmLogout' && (
-        <ConfirmModal 
-          message="Log out?" 
-          onConfirm={performLogout} 
-          onCancel={() => setModal(null)} 
+        <ConfirmModal
+          message="Log out?"
+          onConfirm={performLogout}
+          onCancel={() => setModal(null)}
         />
       )}
 

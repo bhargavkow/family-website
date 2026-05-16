@@ -9,7 +9,7 @@ const cache = require('../config/redis');
 const router = express.Router();
 
 // All admin routes require admin auth
-router.use(adminAuth);
+router.use(...adminAuth);
 
 // GET /api/admin/stats
 router.get('/stats', async (req, res) => {

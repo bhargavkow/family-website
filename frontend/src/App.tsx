@@ -5,57 +5,61 @@ import { ThemeProvider } from './context/ThemeContext';
 import BottomNavbar from './components/BottomNavbar';
 import ProtectedRoute from './components/ProtectedRoute';
 
-import Home from './pages/Home';
-import Members from './pages/Members';
-import MemberProfile from './pages/MemberProfile';
-import Search from './pages/Search';
-import Messages from './pages/Messages';
-import Login from './pages/Login';
-import Admin from './pages/Admin';
-import ProfileRedirect from './pages/ProfileRedirect';
+import { lazy, Suspense } from 'react';
+
+const Home = lazy(() => import('./pages/Home'));
+const Members = lazy(() => import('./pages/Members'));
+const MemberProfile = lazy(() => import('./pages/MemberProfile'));
+const Search = lazy(() => import('./pages/Search'));
+const Messages = lazy(() => import('./pages/Messages'));
+const Login = lazy(() => import('./pages/Login'));
+const Admin = lazy(() => import('./pages/Admin'));
+const ProfileRedirect = lazy(() => import('./pages/ProfileRedirect'));
 
 function App() {
   return (
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/members" element={<Members />} />
-          <Route path="/members/:username" element={<MemberProfile />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/profile" element={<ProfileRedirect />} />
+        <Suspense fallback={null}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/members" element={<Members />} />
+            <Route path="/members/:username" element={<MemberProfile />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/profile" element={<ProfileRedirect />} />
 
-          <Route
-            path="/search"
-            element={
-              <ProtectedRoute>
-                <Search />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/search"
+              element={
+                <ProtectedRoute>
+                  <Search />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/messages"
-            element={
-              <ProtectedRoute>
-                <Messages />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/messages"
+              element={
+                <ProtectedRoute>
+                  <Messages />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/messages/:userId"
-            element={
-              <ProtectedRoute>
-                <Messages />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/messages/:userId"
+              element={
+                <ProtectedRoute>
+                  <Messages />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/admin/*" element={<Admin />} />
-        </Routes>
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/*" element={<Admin />} />
+          </Routes>
+        </Suspense>
 
         <BottomNavbar />
 

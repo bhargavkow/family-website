@@ -67,8 +67,25 @@ export default function Members() {
   const topUpcoming = todayBirthdays.length > 0 ? todayBirthdays : sortedMembers.slice(0, 3);
 
   if (loading) return (
-    <div className="page members-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div className="spinner spinner-lg" />
+    <div className="page members-page" style={{ background: 'var(--color-bg)', minHeight: '100vh' }}>
+      <div className="members-header" style={{ padding: '16px 20px 20px' }}>
+        <div className="skeleton" style={{ width: 120, height: 32, borderRadius: 8, marginBottom: 8 }} />
+        <div className="skeleton" style={{ width: 180, height: 16, borderRadius: 4 }} />
+      </div>
+      <div style={{ padding: '0 0 24px' }}>
+        <div className="skeleton" style={{ height: 120, borderRadius: 0 }} />
+      </div>
+      <div style={{ padding: '0 20px' }}>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+          <div className="skeleton" style={{ width: 44, height: 44, borderRadius: 14 }} />
+          <div>
+            <div className="skeleton" style={{ width: 100, height: 20, borderRadius: 4, marginBottom: 6 }} />
+            <div className="skeleton" style={{ width: 140, height: 14, borderRadius: 4 }} />
+          </div>
+        </div>
+        <div className="skeleton" style={{ height: 180, borderRadius: 24, marginBottom: 16 }} />
+        <div className="skeleton" style={{ height: 80, borderRadius: 24, marginBottom: 16 }} />
+      </div>
     </div>
   );
 
