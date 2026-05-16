@@ -354,7 +354,7 @@ export default function Members() {
             {events.map((ev) => (
               <div key={ev._id} className="event-card" style={{
                 background: 'var(--color-surface)',
-                borderRadius: 24,
+                borderRadius: 8,
                 overflow: 'hidden',
                 border: '1px solid var(--color-border)',
                 boxShadow: '0 8px 24px rgba(0,0,0,0.05)',
