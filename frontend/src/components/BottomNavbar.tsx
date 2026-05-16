@@ -21,7 +21,7 @@ export default function BottomNavbar() {
   const navItems = isRegularUser
     ? [
         { to: '/',         icon: Home,          label: 'Home'     },
-        { to: '/members',  icon: Users,         label: 'Members'  },
+        { to: '/members',  icon: Users,         label: 'Update'  },
         { to: '/messages', icon: MessageCircle, label: 'Messages' },
         { to: '/search',   icon: Search,        label: 'Search'   },
         { to: '/profile',  icon: User,          label: 'Profile'  },

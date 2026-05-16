@@ -6,8 +6,8 @@
 
 /* ─── Profile Header ─────────────────────────────────── */
 .profile-header {
-  padding: 16px 16px 24px;
-  margin-top: 50px; /* Space for top-nav */
+  padding: 8px 16px 24px;
+  margin-top: 48px; /* Tighter space for top-nav */
 }
 
 /* ─── Top Nav ────────────────────────────────────────── */

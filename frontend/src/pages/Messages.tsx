@@ -258,6 +258,7 @@ export default function Messages() {
                   <span className="conv-time">{formatTime(conv.lastMessage.createdAt)}</span>
                 </div>
                 <div className="conv-preview-row">
+                  <span className="conv-preview">{conv.lastMessage.content}</span>
                   {conv.unread > 0 && <span className="unread-badge">{conv.unread}</span>}
                 </div>
               </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { X, Play, Grid, Film, Settings, Search, ArrowLeft } from 'lucide-react';
+import { X, Play, Grid, Film, Settings, Search, ArrowLeft, Plus, Image, Video } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGetMember, apiFollow, apiGetFollowers, apiGetFollowing, apiUpdateProfile, apiCreatePost, apiDeletePost } from '../api';
 import type { User, Post } from '../types';
@@ -308,9 +308,10 @@ function SharePostSheet({ onFileSelected, onCancel }: {
               width: 52, height: 52, borderRadius: 16,
               background: 'linear-gradient(135deg, #f97316, #f59e0b)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 26,
               boxShadow: '0 6px 20px rgba(249,115,22,0.35)',
-            }}>🖼️</div>
+            }}>
+              <Image size={28} color="white" />
+            </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-text)' }}>Image Post</div>
               <div style={{ fontSize: 11, color: 'var(--color-text-2)', marginTop: 2 }}>Photo from gallery</div>
@@ -336,9 +337,10 @@ function SharePostSheet({ onFileSelected, onCancel }: {
               width: 52, height: 52, borderRadius: 16,
               background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 26,
               boxShadow: '0 6px 20px rgba(139,92,246,0.35)',
-            }}>🎬</div>
+            }}>
+              <Video size={28} color="white" />
+            </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-text)' }}>Video Post</div>
               <div style={{ fontSize: 11, color: 'var(--color-text-2)', marginTop: 2 }}>Video from gallery</div>
@@ -559,7 +561,7 @@ async function compressImage(file: File): Promise<File | Blob> {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (e) => {
-      const img = new Image();
+      const img = new window.Image();
       img.src = e.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
@@ -644,19 +646,19 @@ function CreatePostModal({ onClose, onCreated, acceptType = 'image/*,video/*', i
   return (
     <div className="modal-overlay" onClick={loading ? undefined : onClose}>
       <div className="modal animate-scale-in" style={{ maxWidth: file ? 800 : 420 }} onClick={e => e.stopPropagation()} id="create-post-modal">
-        <div className="modal-header" style={{ borderBottom: '1px solid var(--color-border)', padding: '12px 16px', display: 'flex', alignItems: 'center' }}>
+        <div className="modal-header" style={{ borderBottom: '1px solid var(--color-border)', padding: '8px 16px', display: 'flex', alignItems: 'center', height: 56 }}>
           {!loading && (
             <button
-              style={{ background: 'none', border: 'none', fontSize: 14, color: 'var(--color-text-2)', fontWeight: 600, cursor: 'pointer', minWidth: 56 }}
+              style={{ background: 'none', border: 'none', padding: '8px', cursor: 'pointer', color: 'var(--color-text)', display: 'flex', alignItems: 'center', minWidth: 44 }}
               onClick={onClose}
             >
-              Cancel
+              <ArrowLeft size={26} strokeWidth={2.5} />
             </button>
           )}
-          <h3 style={{ fontWeight: 700, fontSize: 16, flex: 1, textAlign: 'center' }}>Create new post</h3>
+          <h3 style={{ fontWeight: 700, fontSize: 16, flex: 1, textAlign: 'center' }}>{file ? 'New post' : 'Create new post'}</h3>
           <button 
             className="btn btn-ghost" 
-            style={{ border: 'none', background: 'none', fontSize: 14, color: file ? 'var(--color-primary)' : 'var(--color-text-3)', fontWeight: 700, minWidth: 56 }} 
+            style={{ border: 'none', background: 'none', fontSize: 16, color: file ? 'var(--color-primary)' : 'var(--color-text-3)', fontWeight: 700, minWidth: 56, cursor: file ? 'pointer' : 'default' }} 
             onClick={handleCreate} 
             disabled={loading || !file}
           >
@@ -946,20 +948,33 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
   return (
     <div className="page profile-page">
       {/* ── Top Navigation Bar ────────────────────────── */}
-      <div className="profile-top-nav">
-        <div className="top-nav-left">
-          {/* Back button or spacer */}
-          <div style={{ width: 40 }} />
+      <div className="profile-top-nav" style={{ display: 'flex', alignItems: 'center', height: 50, borderBottom: 'none', position: 'fixed', top: 0, left: 0, right: 0, background: 'var(--color-bg)', zIndex: 100, padding: 0 }}>
+        {/* Left: Action button (Plus for own profile, Back for others) */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+          {isOwn ? (
+            <button onClick={() => setModal('sharePost')} style={{ background: 'none', border: 'none', padding: '10px 12px', cursor: 'pointer', color: 'var(--color-text)', display: 'flex', alignItems: 'center' }}>
+              <Plus size={28} strokeWidth={2.5} />
+            </button>
+          ) : (
+            <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '10px 8px', cursor: 'pointer', color: 'var(--color-text)', display: 'flex', alignItems: 'center' }}>
+              <ArrowLeft size={26} strokeWidth={2.5} />
+            </button>
+          )}
         </div>
-        <div className="top-nav-center">
-          <span className="top-nav-username">{profile.username}</span>
+
+        {/* Center: Username (Absolute Center) */}
+        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontWeight: 800, fontSize: 16, color: 'var(--color-text)', whiteSpace: 'nowrap' }}>
+          {profile.username}
         </div>
-        <div className="top-nav-right">
+
+        {/* Right: Settings or Spacer */}
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', paddingRight: 8 }}>
           {isOwn && (
             <button className="icon-btn" onClick={() => setModal('settings')}>
               <Settings size={22} />
             </button>
           )}
+          {!isOwn && <div style={{ width: 40 }} />}
         </div>
       </div>
 

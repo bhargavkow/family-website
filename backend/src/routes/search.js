@@ -16,7 +16,7 @@ router.get('/members', async (req, res) => {
       isActive: true,
       $or: [{ username: regex }, { name: regex }],
     })
-      .select('username name profilePhoto bio')
+      .select('username name profilePhoto bio dob')
       .limit(20);
 
     res.json(members);

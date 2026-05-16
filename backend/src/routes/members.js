@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
     if (cached) return res.json(JSON.parse(cached));
 
     const members = await User.find({ isActive: true, isAdmin: false })
-      .select('username name profilePhoto bio followers following')
+      .select('username name profilePhoto bio followers following dob')
       .sort({ createdAt: -1 });
 
     await cache.set('members:all', JSON.stringify(members), 120);
