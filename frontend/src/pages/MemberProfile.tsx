@@ -1091,7 +1091,6 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
               <button
                 className={`btn profile-action-btn ${following ? 'following' : 'btn-primary'}`}
                 onClick={handleFollow}
-                disabled={following}
                 id="follow-btn"
               >
                 {following ? 'Following' : 'Follow'}
