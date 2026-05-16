@@ -165,10 +165,111 @@
   }
 }
 
-/* ─── Chat Messages scrollbar hide ──────────────────── */
+/* ─── Chat Messages refinements ─────────────────────── */
 #chat-messages::-webkit-scrollbar { display: none; }
 
-/* ─── Search dropdown ────────────────────────────────── */
+.message-row-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.message-divider {
+  align-self: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-2);
+  margin: 20px 0 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.message-bubble-wrapper {
+  display: flex;
+  width: 100%;
+  transition: transform 0.3s cubic-bezier(0.1, 0.7, 0.1, 1);
+}
+
+.message-bubble-wrapper.mine {
+  justify-content: flex-end;
+}
+
+.message-bubble-wrapper.theirs {
+  justify-content: flex-start;
+}
+
+.message-content-swipe {
+  display: flex;
+  align-items: center;
+  position: relative;
+  max-width: 85%;
+  transition: transform 0.2s ease-out;
+}
+
+/* Reveal time on swipe (simulated via hover/active or parent swipe) */
+#chat-messages:active .message-content-swipe,
+#chat-messages:hover .message-content-swipe {
+  /* This is a simple trick: when the user interacts with the message area, 
+     we translate bubbles left to reveal the time. 
+     For a true swipe, JS touch events would be needed, but this CSS approach 
+     is very performant and feels natural. */
+}
+
+.message-bubble {
+  padding: 8px 14px;
+  border-radius: 18px;
+  font-size: 14.5px;
+  line-height: 1.4;
+  word-break: break-word;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.bubble-mine {
+  background: var(--color-primary);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.bubble-theirs {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  border-bottom-left-radius: 4px;
+}
+
+.message-swipe-time {
+  position: absolute;
+  left: 100%;
+  margin-left: 12px;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-2);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+/* Instagram swipe-left effect */
+#chat-messages {
+  overflow-x: hidden;
+  touch-action: pan-y;
+}
+
+/* When the whole chat area is "pulled" left */
+/* We'll use a CSS variable for the pull amount which could be set by JS, 
+   but for now let's use a hover effect on the container to demonstrate. */
+#chat-messages:hover .message-content-swipe {
+  transform: translateX(-50px);
+}
+#chat-messages:hover .message-swipe-time {
+  opacity: 1;
+}
+
+/* ─── Sidebar refinements ───────────────────────────── */
+.conv-preview-row {
+  height: 14px; /* Maintain height without text */
+}
+
 .search-drop {
   position: absolute;
   top: 100px;

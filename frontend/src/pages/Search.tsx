@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search as SearchIcon, X, Play, FolderOpen, ArrowLeft } from 'lucide-react';
-import { apiSearchMembers, apiGetFeed, apiGetMoments } from '../api';
+import { apiSearchMembers, apiGetFeed, apiGetMoments, apiGetMembers } from '../api';
 import type { Moment } from '../api';
 import type { User, Post } from '../types';
 import PostLightbox from '../components/PostLightbox';
 import './Search.css';
+import './Members.css';
 
 function useDebounce<T>(value: T, delay: number) {
   const [debounced, setDebounced] = useState(value);
@@ -363,7 +364,10 @@ export default function Search() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
-  const [exploreTab, setExploreTab] = useState<'posts' | 'moments'>('posts');
+  const [exploreTab, setExploreTab] = useState<'posts' | 'moments' | 'members'>('posts');
+  const [allMembers, setAllMembers] = useState<User[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [memberSort, setMemberSort] = useState<'asc' | 'desc'>('asc');
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
@@ -382,6 +386,15 @@ export default function Search() {
       .catch(() => setResults([]))
       .finally(() => setSearching(false));
   }, [debounced]);
+
+  // Load all members for Members tab
+  useEffect(() => {
+    setMembersLoading(true);
+    apiGetMembers()
+      .then(res => setAllMembers(res.data))
+      .catch(() => {})
+      .finally(() => setMembersLoading(false));
+  }, []);
 
   // Load feed posts
   const loadPosts = useCallback(async (p: number) => {
@@ -421,7 +434,6 @@ export default function Search() {
             placeholder="Search members by name or username..."
             value={query}
             onChange={e => setQuery(e.target.value)}
-            autoFocus
           />
           {query && (
             <button className="search-clear" onClick={() => setQuery('')} id="clear-search">
@@ -465,12 +477,13 @@ export default function Search() {
       {/* ── Explore Section ─────────────────────────── */}
       {!query && (
         <>
-          {/* Tab Bar */}
+          {/* Tab Bar — 3 tabs */}
           <div style={{
             display: 'flex',
             borderBottom: '1px solid var(--color-border)',
             marginBottom: 2,
           }}>
+            {/* Posts */}
             <button
               onClick={() => setExploreTab('posts')}
               style={{
@@ -482,13 +495,14 @@ export default function Search() {
                 marginBottom: -1,
               }}
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill={exploreTab === 'posts' ? 'var(--color-text)' : 'none'} stroke={exploreTab === 'posts' ? 'var(--color-text)' : 'var(--color-text-2)'} strokeWidth="1.8">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill={exploreTab === 'posts' ? 'var(--color-text)' : 'none'} stroke={exploreTab === 'posts' ? 'var(--color-text)' : 'var(--color-text-2)'} strokeWidth="1.8">
                 <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
                 <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
               </svg>
-              <span style={{ fontSize: 10, fontWeight: 600, color: exploreTab === 'posts' ? 'var(--color-text)' : 'var(--color-text-2)', letterSpacing: 0.3 }}>POSTS</span>
+              <span style={{ fontSize: 9, fontWeight: 600, color: exploreTab === 'posts' ? 'var(--color-text)' : 'var(--color-text-2)', letterSpacing: 0.3 }}>POSTS</span>
             </button>
 
+            {/* Moments */}
             <button
               onClick={() => setExploreTab('moments')}
               style={{
@@ -500,73 +514,131 @@ export default function Search() {
                 marginBottom: -1,
               }}
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={exploreTab === 'moments' ? 'var(--color-text)' : 'var(--color-text-2)'} strokeWidth="1.8">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={exploreTab === 'moments' ? 'var(--color-text)' : 'var(--color-text-2)'} strokeWidth="1.8">
                 <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
                 <path d="M8 3v4M16 3v4M3 10h18"/>
               </svg>
-              <span style={{ fontSize: 10, fontWeight: 600, color: exploreTab === 'moments' ? 'var(--color-text)' : 'var(--color-text-2)', letterSpacing: 0.3 }}>MOMENTS</span>
+              <span style={{ fontSize: 9, fontWeight: 600, color: exploreTab === 'moments' ? 'var(--color-text)' : 'var(--color-text-2)', letterSpacing: 0.3 }}>MOMENTS</span>
+            </button>
+
+            {/* Members */}
+            <button
+              onClick={() => setExploreTab('members')}
+              style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                gap: 3, padding: '10px 0',
+                background: 'none', border: 'none', cursor: 'pointer',
+                borderBottom: exploreTab === 'members' ? '2px solid var(--color-text)' : '2px solid transparent',
+                marginBottom: -1,
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={exploreTab === 'members' ? 'var(--color-text)' : 'var(--color-text-2)'} strokeWidth="1.8">
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.87"/>
+              </svg>
+              <span style={{ fontSize: 9, fontWeight: 600, color: exploreTab === 'members' ? 'var(--color-text)' : 'var(--color-text-2)', letterSpacing: 0.3 }}>MEMBERS</span>
             </button>
           </div>
 
-          {/* Explore Posts Grid — 3-col masonry */}
+          {/* Explore Posts Grid — Instagram-style alternating */}
           {exploreTab === 'posts' && (
             <>
-              {postsLoading && posts.length === 0 ? (
-                <div style={{ display: 'flex', gap: 2, padding: 0 }}>
-                  {[0, 1, 2].map(col => (
-                    <div key={col} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} style={{
-                          width: '100%',
-                          height: (i + col) % 2 === 0 ? 160 : 120,
-                          background: 'var(--color-surface-2)',
-                          animation: 'pulse 1.5s ease-in-out infinite',
-                        }} />
+              {(() => {
+                const LAYOUT_RIGHT = [
+                  { gridColumn: '1', gridRow: '1', large: false },
+                  { gridColumn: '2', gridRow: '1', large: false },
+                  { gridColumn: '3', gridRow: '1 / span 2', large: true },
+                  { gridColumn: '1', gridRow: '2', large: false },
+                  { gridColumn: '2', gridRow: '2', large: false },
+                ];
+                const LAYOUT_LEFT = [
+                  { gridColumn: '1', gridRow: '1 / span 2', large: true },
+                  { gridColumn: '2', gridRow: '1', large: false },
+                  { gridColumn: '3', gridRow: '1', large: false },
+                  { gridColumn: '2', gridRow: '2', large: false },
+                  { gridColumn: '3', gridRow: '2', large: false },
+                ];
+
+                if (postsLoading && posts.length === 0) {
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {[0, 1].map(g => (
+                        <div key={g} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+                          {[0,1,2,3,4].map(i => {
+                            const isLarge = (g === 0 && i === 2) || (g === 1 && i === 0);
+                            const gCol = g === 0 ? '3' : '1';
+                            return (
+                              <div key={i} style={{
+                                gridColumn: isLarge ? gCol : undefined,
+                                gridRow: isLarge ? '1 / span 2' : undefined,
+                                aspectRatio: isLarge ? undefined : '1',
+                                background: 'var(--color-surface-2)',
+                                animation: 'pulse 1.5s ease-in-out infinite',
+                              }} />
+                            );
+                          })}
+                        </div>
                       ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                  {[0, 1, 2].map(col => (
-                    <div key={col} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {posts
-                        .filter((_, i) => i % 3 === col)
-                        .map((post, localIdx) => {
-                          const globalIdx = localIdx * 3 + col;
-                          return (
-                            <div
-                              key={post._id}
-                              id={`explore-${post._id}`}
-                              onClick={() => setLightboxIdx(globalIdx)}
-                              style={{ position: 'relative', cursor: 'pointer', overflow: 'hidden' }}
-                            >
-                              {post.mediaType === 'video' ? (
-                                <video
-                                  src={post.mediaUrl}
-                                  style={{ width: '100%', display: 'block' }}
-                                  muted playsInline
-                                />
-                              ) : (
-                                <img
-                                  src={post.mediaUrl}
-                                  alt={post.caption}
-                                  style={{ width: '100%', display: 'block' }}
-                                  loading="lazy"
-                                />
-                              )}
-                              {post.mediaType === 'video' && (
-                                <div style={{ position: 'absolute', top: 5, right: 5 }}>
-                                  <Play size={13} fill="white" color="white" />
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                    </div>
-                  ))}
-                </div>
-              )}
+                  );
+                }
+
+                const groups: { items: typeof posts; startIdx: number }[] = [];
+                for (let i = 0; i < posts.length; i += 5) {
+                  groups.push({ items: posts.slice(i, i + 5), startIdx: i });
+                }
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {groups.map(({ items, startIdx }, groupIdx) => {
+                      const layout = groupIdx % 2 === 0 ? LAYOUT_RIGHT : LAYOUT_LEFT;
+                      return (
+                        <div key={groupIdx} style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(3, 1fr)',
+                          gap: 2,
+                        }}>
+                          {items.map((post, posIdx) => {
+                            if (posIdx >= layout.length) return null;
+                            const { gridColumn, gridRow, large } = layout[posIdx];
+                            return (
+                              <div
+                                key={post._id}
+                                id={`explore-${post._id}`}
+                                onClick={() => setLightboxIdx(startIdx + posIdx)}
+                                style={{
+                                  gridColumn, gridRow,
+                                  position: 'relative', cursor: 'pointer',
+                                  overflow: 'hidden',
+                                  aspectRatio: large ? undefined : '1',
+                                  background: 'var(--color-surface-2)',
+                                }}
+                              >
+                                {post.mediaType === 'video' ? (
+                                  <video src={post.mediaUrl}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                    muted playsInline />
+                                ) : (
+                                  <img src={post.mediaUrl} alt={post.caption}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                    loading="lazy" />
+                                )}
+                                {post.mediaType === 'video' && (
+                                  <div style={{ position: 'absolute', top: 5, right: 5 }}>
+                                    <Play size={13} fill="white" color="white" />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
               <div ref={loaderRef} style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {!hasMore && posts.length > 0 && (
                   <p style={{ color: 'var(--color-text-2)', fontSize: 13 }}>You've seen it all!</p>
@@ -577,6 +649,96 @@ export default function Search() {
 
           {/* Special Moments Grid */}
           {exploreTab === 'moments' && <SpecialMomentsSection />}
+
+          {/* Members Cards */}
+          {exploreTab === 'members' && (
+            <div style={{ paddingBottom: 80 }}>
+              {/* Header */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '16px 16px 12px',
+              }}>
+                <div>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-text)', margin: '0 0 2px' }}>Members</h3>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-2)', margin: 0 }}>
+                    {allMembers.length} member{allMembers.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                {/* Sort toggle */}
+                <button
+                  onClick={() => setMemberSort(s => s === 'asc' ? 'desc' : 'asc')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '6px 12px', borderRadius: 20,
+                    background: 'var(--color-surface-2)',
+                    border: '1px solid var(--color-border)',
+                    cursor: 'pointer', color: 'var(--color-text)',
+                    fontSize: 13, fontWeight: 600,
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                    {memberSort === 'asc'
+                      ? <><path d="M3 6h18M3 12h12M3 18h6"/><path d="M19 12v8m0 0-3-3m3 3 3-3"/></>
+                      : <><path d="M3 6h6M3 12h12M3 18h18"/><path d="M19 4v8m0-8-3 3m3-3 3 3"/></>
+                    }
+                  </svg>
+                  {memberSort === 'asc' ? 'A → Z' : 'Z → A'}
+                </button>
+              </div>
+
+              {membersLoading ? (
+                <div className="members-grid">
+                  {Array.from({ length: 9 }).map((_, i) => (
+                    <div key={i} className="member-tile-skeleton">
+                      <div className="skeleton member-tile-photo" style={{ aspectRatio: '1' }} />
+                      <div style={{ padding: '8px 4px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div className="skeleton" style={{ height: 12, width: '70%', borderRadius: 6 }} />
+                        <div className="skeleton" style={{ height: 10, width: '50%', borderRadius: 6 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="members-grid">
+                  {[...allMembers]
+                    .sort((a, b) =>
+                      memberSort === 'asc'
+                        ? a.name.localeCompare(b.name)
+                        : b.name.localeCompare(a.name)
+                    )
+                    .map(u => (
+                      <div
+                        key={u._id}
+                        className="member-tile"
+                        onClick={() => navigate(`/members/${u.username}`)}
+                        role="button"
+                        tabIndex={0}
+                        id={`search-tile-${u.username}`}
+                      >
+                        <div className="member-tile-photo">
+                          {u.profilePhoto?.url ? (
+                            <img src={u.profilePhoto.url} alt={u.name} className="member-tile-img" />
+                          ) : (
+                            <div className="member-tile-initial">
+                              {u.name?.[0]?.toUpperCase() || '?'}
+                            </div>
+                          )}
+                          <div className="member-tile-overlay">
+                            <span className="member-tile-view">View Profile</span>
+                          </div>
+                        </div>
+                        <div className="member-tile-info">
+                          <span className="member-tile-name">{u.name}</span>
+                          <span className="member-tile-username">@{u.username}</span>
+                        </div>
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
