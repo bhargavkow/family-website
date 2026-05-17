@@ -143,16 +143,7 @@ export default function Home() {
       <section className="section family-history" id="family-history" style={{ paddingTop: '30px' }}>
         <div className="container">
           <div className="section-header">
-            <h2 
-              className="section-title" 
-              style={{ 
-                color: '#fff', 
-                WebkitTextFillColor: '#fff', 
-                letterSpacing: '1px'
-              }}
-            >
-              Our Story
-            </h2>
+            <h2 className="section-title">Our Story</h2>
             <p className="section-subtitle">A journey through generations of love and tradition</p>
           </div>
 
