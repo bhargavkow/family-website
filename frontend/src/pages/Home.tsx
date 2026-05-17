@@ -1,33 +1,31 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Users, Calendar, Globe, Heart } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { FlipText } from '../components/ui/flip-text';
+import ScrollReveal from '../components/ui/ScrollReveal';
+import { Users, Calendar, Globe, Heart } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
-import { apiGetMembers } from '../api';
+import { apiGetMembers, apiGetFeed } from '../api';
 import type { User } from '../types';
+import DomeGallery from '../components/ui/DomeGallery';
+import type { DomeGalleryImage } from '../components/ui/DomeGallery';
 import './Home.css';
+
+import img1 from '../assets/_MG_1369.JPG';
+import img2 from '../assets/_MG_1381.JPG';
+import img3 from '../assets/_MG_1506.JPG';
 
 // ─── Carousel Data ────────────────────────────────────────
 const slides = [
   {
     id: 1,
-    bg: 'linear-gradient(135deg, #1a0533 0%, #0d1b4b 50%, #1a0533 100%)',
-    title: 'Our Family Legacy',
-    subtitle: 'Five generations of love, laughter & memories',
-    emoji: '🌳',
+    bg: `url(${img1}) center / 100% 100% no-repeat`,
   },
   {
     id: 2,
-    bg: 'linear-gradient(135deg, #0d2b1a 0%, #0d1b4b 50%, #2b0d1a 100%)',
-    title: 'Rooted in Tradition',
-    subtitle: 'From humble beginnings to a thriving family tree',
-    emoji: '🏡',
+    bg: `url(${img2}) center / 100% 100% no-repeat`,
   },
   {
     id: 3,
-    bg: 'linear-gradient(135deg, #2b1a0d 0%, #0d1b4b 50%, #0d2b2b 100%)',
-    title: 'Together Always',
-    subtitle: 'Distance is nothing when family is everything',
-    emoji: '❤️',
+    bg: `url(${img3}) center / 100% 100% no-repeat`,
   },
 ];
 
@@ -56,45 +54,20 @@ function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: str
   );
 }
 
-// ─── Member Avatar Card ───────────────────────────────────
-function MemberCard({ member }: { member: User }) {
-  const navigate = useNavigate();
-  const initial = member.name?.[0]?.toUpperCase() || '?';
-
+// ─── Sparkle Icon ───────────────────────────────────────────
+function SparkleIcon({ style }: { style?: React.CSSProperties }) {
   return (
-    <div
-      className="member-preview-card"
-      onClick={() => navigate(`/members/${member.username}`)}
-      role="button"
-      tabIndex={0}
-      id={`member-${member.username}`}
-    >
-      <div className="member-preview-avatar avatar-ring">
-        {member.profilePhoto?.url ? (
-          <img
-            src={member.profilePhoto.url}
-            alt={member.name}
-            className="avatar"
-            style={{ width: 64, height: 64 }}
-          />
-        ) : (
-          <div className="member-preview-initial avatar" style={{ width: 64, height: 64 }}>
-            {initial}
-          </div>
-        )}
-      </div>
-      <span className="member-preview-name">{member.name}</span>
-      <span className="member-preview-username">@{member.username}</span>
-    </div>
+    <svg className="sparkle-star" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={style}>
+      <path d="M12 0L13.5 8.5L22 10L13.5 11.5L12 20L10.5 11.5L2 10L10.5 8.5L12 0Z" fill="currentColor" />
+    </svg>
   );
 }
 
 // ─── Home Page ────────────────────────────────────────────
 export default function Home() {
-  const navigate = useNavigate();
   const [slide, setSlide] = useState(0);
   const [members, setMembers] = useState<User[]>([]);
-  const [membersLoading, setMembersLoading] = useState(true);
+  const [galleryImages, setGalleryImages] = useState<DomeGalleryImage[]>([]);
 
   // Auto-advance carousel
   useEffect(() => {
@@ -106,87 +79,92 @@ export default function Home() {
   useEffect(() => {
     apiGetMembers()
       .then(res => setMembers(res.data))
-      .catch(() => {})
-      .finally(() => setMembersLoading(false));
+      .catch(() => { });
   }, []);
 
-  const prev = useCallback(() => setSlide(s => (s - 1 + slides.length) % slides.length), []);
-  const next = useCallback(() => setSlide(s => (s + 1) % slides.length), []);
+  // Fetch feed images for DomeGallery
+  useEffect(() => {
+    const defaults = [
+      { src: img1, alt: 'Baldaniya Legacy' },
+      { src: img2, alt: 'Baldaniya Celebrations' },
+      { src: img3, alt: 'Baldaniya Memories' },
+    ];
+
+    apiGetFeed(1)
+      .then(res => {
+        const postImages = res.data.posts
+          .filter(p => p.mediaType === 'image' && p.mediaUrl)
+          .map(p => ({
+            src: p.mediaUrl,
+            alt: p.caption || `Post by ${p.author.name}`
+          }));
+        
+        if (postImages.length > 0) {
+          setGalleryImages([...postImages, ...defaults]);
+        } else {
+          setGalleryImages(defaults);
+        }
+      })
+      .catch(() => {
+        setGalleryImages(defaults);
+      });
+  }, []);
+
 
   const { ref: statsRef, inView: statsInView } = useInView({ triggerOnce: true });
 
   return (
     <div className="page home-page">
+      {/* ── Title Section ─────────────────────────────── */}
+      <div className="home-title-bar">
+        <h1>
+          <SparkleIcon style={{ top: '-10px', left: '-20px', width: '20px', height: '20px', animationDelay: '0s', animationDuration: '1.5s' }} />
+          <SparkleIcon style={{ top: '10px', right: '-30px', width: '28px', height: '28px', animationDelay: '0.5s', animationDuration: '2s' }} />
+          <SparkleIcon style={{ bottom: '-5px', left: '20%', width: '16px', height: '16px', animationDelay: '1s', animationDuration: '2.5s' }} />
+          <SparkleIcon style={{ top: '-15px', right: '20%', width: '24px', height: '24px', animationDelay: '1.2s', animationDuration: '1.8s' }} />
+          <FlipText duration={2.2} delay={0}>
+            BALDANIYA FAMILY
+          </FlipText>
+        </h1>
+      </div>
+
       {/* ── Hero Carousel ─────────────────────────────── */}
       <section className="hero-carousel" id="home-hero">
         <div className="hero-track" style={{ transform: `translateX(-${slide * 100}%)` }}>
           {slides.map((s) => (
             <div key={s.id} className="hero-slide" style={{ background: s.bg }}>
               <div className="hero-overlay" />
-              <div className="hero-content animate-slide-up">
-                <div className="hero-emoji">{s.emoji}</div>
-                <h1 className="hero-title">{s.title}</h1>
-                <p className="hero-subtitle">{s.subtitle}</p>
-                <button
-                  className="btn btn-primary btn-lg"
-                  onClick={() => navigate('/members')}
-                  id="hero-explore-btn"
-                >
-                  Meet the Family
-                </button>
-              </div>
             </div>
-          ))}
-        </div>
-
-        {/* Navigation */}
-        <button className="carousel-btn carousel-prev" onClick={prev} id="carousel-prev" aria-label="Previous slide">
-          <ChevronLeft size={22} />
-        </button>
-        <button className="carousel-btn carousel-next" onClick={next} id="carousel-next" aria-label="Next slide">
-          <ChevronRight size={22} />
-        </button>
-
-        {/* Dots */}
-        <div className="carousel-dots">
-          {slides.map((_, i) => (
-            <button
-              key={i}
-              className={`dot ${i === slide ? 'active' : ''}`}
-              onClick={() => setSlide(i)}
-              aria-label={`Slide ${i + 1}`}
-            />
           ))}
         </div>
       </section>
 
       {/* ── Family History ────────────────────────────── */}
-      <section className="section family-history" id="family-history">
+      <section className="section family-history" id="family-history" style={{ paddingTop: '30px' }}>
         <div className="container">
           <div className="section-header">
-            <h2 className="section-title">Our Story</h2>
+            <h2 
+              className="section-title" 
+              style={{ 
+                color: '#fff', 
+                WebkitTextFillColor: '#fff', 
+                letterSpacing: '1px'
+              }}
+            >
+              Our Story
+            </h2>
             <p className="section-subtitle">A journey through generations of love and tradition</p>
           </div>
 
-          <div className="timeline">
-            {[
-              { year: '1920', title: 'The Beginning', desc: 'Our family roots trace back over a century, when our ancestors first settled and built a life together.', icon: '🌱' },
-              { year: '1950', title: 'Growing Strong', desc: 'Three generations strong, the family expanded across cities while keeping bonds unbreakable.', icon: '🏠' },
-              { year: '1980', title: 'A New Era', desc: 'A generation of dreamers and achievers brought new skills, professions, and horizons to our family.', icon: '⭐' },
-              { year: '2000', title: 'Modern Family', desc: 'The digital age brought us closer — video calls, group chats, and now our very own family website.', icon: '💻' },
-              { year: 'Now', title: 'Our Legacy Lives On', desc: 'Five generations, countless memories, and an unbreakable bond that grows stronger every day.', icon: '❤️' },
-            ].map((item, i) => (
-              <div key={item.year} className={`timeline-item ${i % 2 === 0 ? 'left' : 'right'}`}>
-                <div className="timeline-dot">
-                  <span>{item.icon}</span>
-                </div>
-                <div className="timeline-card card">
-                  <div className="timeline-year">{item.year}</div>
-                  <h3 className="timeline-title">{item.title}</h3>
-                  <p className="timeline-desc">{item.desc}</p>
-                </div>
-              </div>
-            ))}
+          <div className="story-content" style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto', fontSize: '0.8rem', lineHeight: '1.8', color: '#f0f0f8', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+            <ScrollReveal
+              baseOpacity={0}
+              enableBlur={true}
+              baseRotation={0}
+              blurStrength={10}
+            >
+              Our family roots trace back over a century, when our ancestors first settled and built a life together. Over the decades, we've expanded across cities while keeping our bonds unbreakable. A generation of dreamers and achievers brought new skills and horizons to our family, and the digital age brought us closer than ever. Today, with five generations and countless memories, our unbreakable bond grows stronger every day.
+            </ScrollReveal>
           </div>
         </div>
       </section>
@@ -220,42 +198,36 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Members Preview ───────────────────────────── */}
-      <section className="section members-preview" id="members-preview">
+      {/* ── Immersive Family Gallery ─────────────────── */}
+      <section className="section family-interactive-gallery" id="family-interactive-gallery" style={{ padding: '60px 0 20px', background: '#000000' }}>
         <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">Meet the Family</h2>
-            <p className="section-subtitle">Our incredible members from every generation</p>
+          <div className="section-header" style={{ marginBottom: '32px' }}>
+            <h2 className="section-title">Immersive Gallery</h2>
+            <p className="section-subtitle">Drag to spin the 3D dome and click any memory to enlarge</p>
           </div>
-
-          {membersLoading ? (
-            <div className="member-grid">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="member-preview-card-skeleton">
-                  <div className="skeleton" style={{ width: 68, height: 68, borderRadius: '50%' }} />
-                  <div className="skeleton" style={{ width: 70, height: 12, borderRadius: 6, marginTop: 8 }} />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="member-grid">
-              {members.slice(0, 10).map(m => (
-                <MemberCard key={m._id} member={m} />
-              ))}
-            </div>
-          )}
-
-          {members.length > 10 && (
-            <div style={{ textAlign: 'center', marginTop: 32 }}>
-              <button
-                className="btn btn-outline btn-lg"
-                onClick={() => navigate('/members')}
-                id="view-all-members-btn"
-              >
-                View All {members.length} Members
-              </button>
-            </div>
-          )}
+          <div className="dome-gallery-wrapper" style={{ height: '550px', position: 'relative', overflow: 'hidden', background: 'transparent' }}>
+            {galleryImages.length > 0 && (
+              <DomeGallery 
+                images={galleryImages}
+                fit={0.65}
+                fitBasis="auto"
+                minRadius={500}
+                maxRadius={900}
+                padFactor={0.15}
+                overlayBlurColor="#000000"
+                maxVerticalRotationDeg={10}
+                dragSensitivity={15}
+                enlargeTransitionMs={350}
+                segments={30}
+                dragDampening={1.8}
+                openedImageWidth="350px"
+                openedImageHeight="450px"
+                imageBorderRadius="16px"
+                openedImageBorderRadius="24px"
+                grayscale={false}
+              />
+            )}
+          </div>
         </div>
       </section>
     </div>

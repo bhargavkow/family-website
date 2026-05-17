@@ -1,8 +1,7 @@
 /* ─── Hero Carousel ──────────────────────────────────── */
 .hero-carousel {
   position: relative;
-  height: 85vh;
-  min-height: 500px;
+  height: 50vh;
   overflow: hidden;
 }
 
@@ -27,27 +26,36 @@
   background: var(--grad-hero);
 }
 
-.hero-content {
-  position: relative;
-  z-index: 1;
+.home-title-bar {
+  width: 100%;
+  background: black;
   text-align: center;
-  padding: 0 24px;
-  max-width: 600px;
+  padding: 8px 0;
 }
 
-.hero-emoji {
-  font-size: 64px;
-  margin-bottom: 16px;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
-}
-
-.hero-title {
+.home-title-bar h1 {
   font-family: var(--font-display);
   font-size: clamp(32px, 7vw, 64px);
   font-weight: 700;
   color: #fff;
-  margin-bottom: 12px;
+  margin: 0;
   text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+  position: relative;
+  display: inline-block;
+}
+
+@keyframes sparkle-twinkle {
+  0% { transform: scale(0) rotate(0deg); opacity: 0; }
+  50% { transform: scale(1) rotate(90deg); opacity: 1; }
+  100% { transform: scale(0) rotate(180deg); opacity: 0; }
+}
+
+.sparkle-star {
+  position: absolute;
+  animation: sparkle-twinkle 2s infinite ease-in-out;
+  pointer-events: none;
+  z-index: 10;
+  color: #FFD700; /* Gold */
 }
 
 .hero-subtitle {
@@ -197,6 +205,23 @@
   background: var(--color-bg);
   position: relative;
   overflow: hidden;
+  padding: 60px 0;
+}
+
+@media (min-width: 768px) {
+  .family-facts {
+    padding: 80px 0 60px;
+  }
+}
+
+/* Make container full-width on mobile to allow grid edge-to-edge */
+@media (max-width: 767px) {
+  .family-facts .container {
+    padding-left: 0;
+    padding-right: 0;
+    max-width: 100%;
+    width: 100%;
+  }
 }
 
 .family-facts::before {
@@ -205,53 +230,137 @@
   top: -200px;
   left: 50%;
   transform: translateX(-50%);
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, var(--color-primary-glow) 0%, transparent 70%);
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
   pointer-events: none;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(2, 1fr); /* 2 columns on ALL screens including mobile */
+  width: 100%;
+  margin: 0 auto;
+  background: #000000 !important; /* Completely solid black */
+  border: none; /* Completely borderless outer grid */
+  border-radius: 0 !important; /* No radius */
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  overflow: hidden;
 }
 
 @media (min-width: 768px) {
-  .stats-grid { grid-template-columns: repeat(4, 1fr); }
+  .stats-grid {
+    max-width: 900px;
+    background: #000000 !important; /* Completely solid black */
+    border: none; /* Completely borderless outer grid */
+    border-radius: 0 !important; /* No radius */
+    box-shadow: none !important;
+  }
 }
 
 .stat-card {
   text-align: center;
-  padding: 32px 20px;
-  transition: transform var(--transition);
+  padding: 24px 12px;
+  transition: all 0.3s ease;
+  background: #000000 !important; /* Completely solid black */
+  box-shadow: none !important;
+  border-radius: 0 !important; /* No radius */
+  border: none !important; /* Reset default card borders */
 }
-.stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+
+/* Card 1 (Top Left): right side and bottom inner borders only */
+.stat-card:nth-child(1) {
+  border-right: 1px solid rgb(255, 255, 255) !important;
+  border-bottom: 1px solid rgb(255, 255, 255) !important;
+}
+
+/* Card 2 (Top Right): bottom inner border only (left is drawn by Card 1) */
+.stat-card:nth-child(2) {
+  border-bottom: 1px solid rgb(255, 255, 255) !important;
+}
+
+/* Card 3 (Bottom Left): right inner border only (top is drawn by Card 1) */
+.stat-card:nth-child(3) {
+  border-right: 1px solid rgb(255, 255, 255) !important;
+}
+
+/* Card 4 (Bottom Right): no borders (top is drawn by Card 2, left is drawn by Card 3) */
+.stat-card:nth-child(4) {
+  border: none !important;
+}
+
+@media (min-width: 768px) {
+  .stat-card {
+    padding: 56px 40px;
+  }
+}
+
+.stat-card:hover {
+  background: rgba(255, 255, 255, 0.015) !important;
+}
 
 .stat-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 16px;
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius);
-  background: rgba(255,255,255,0.04);
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@media (min-width: 768px) {
+  .stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+  }
+}
+
+.stat-card:hover .stat-icon {
+  transform: translateY(-4px) scale(1.08);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: currentColor;
+  box-shadow: 0 0 20px currentColor;
 }
 
 .counter-value, .stat-value {
-  font-size: 36px;
-  font-weight: 800;
-  line-height: 1;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.1;
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
+  background: linear-gradient(to bottom, #ffffff 40%, #b0b0d0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@media (min-width: 768px) {
+  .counter-value, .stat-value {
+    font-size: 40px;
+    margin-bottom: 8px;
+  }
 }
 
 .stat-label {
   color: var(--color-text-2);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.3px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+@media (min-width: 768px) {
+  .stat-label {
+    font-size: 13px;
+    letter-spacing: 1.5px;
+  }
 }
 
 /* ─── Members Preview ────────────────────────────────── */
@@ -302,4 +411,28 @@
 
 .home-page .section:last-child {
   padding-bottom: 100px;
+}
+
+/* Pure Black Background Override on Home Page Sections, Body, and Bottom Navbar */
+body {
+  background-color: #000000 !important;
+  background: #000000 !important;
+}
+
+.home-page {
+  background-color: #000000 !important;
+  background: #000000 !important;
+}
+
+.home-page .section,
+.home-page .family-history,
+.home-page .family-facts,
+.home-page .family-interactive-gallery {
+  background-color: #000000 !important;
+  background: #000000 !important;
+}
+
+.bottom-navbar {
+  background: #000000 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
