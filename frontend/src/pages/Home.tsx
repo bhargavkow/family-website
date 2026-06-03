@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FlipText } from '../components/ui/flip-text';
-import ScrollReveal from '../components/ui/ScrollReveal';
-import { Users, Calendar, Globe, Heart } from 'lucide-react';
+import { Users, Calendar, Globe, Heart, TreePine, Home as HomeIcon, Star, Sparkles, MapPin, Baby } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
 import { apiGetMembers, apiGetFeed } from '../api';
 import type { User } from '../types';
@@ -15,17 +14,66 @@ import img3 from '../assets/_MG_1506.JPG';
 
 // ─── Carousel Data ────────────────────────────────────────
 const slides = [
+  { id: 1, bg: `url(${img1}) center / cover no-repeat` },
+  { id: 2, bg: `url(${img2}) center / cover no-repeat` },
+  { id: 3, bg: `url(${img3}) center / cover no-repeat` },
+];
+
+// ─── Story Timeline Data ───────────────────────────────────
+const eras = [
   {
-    id: 1,
-    bg: `url(${img1}) center / 100% 100% no-repeat`,
+    year: '1920s',
+    title: 'The Roots',
+    desc: 'Our ancestors laid the first stones of the Baldaniya legacy — farming the land, building homes, and forging a family identity rooted in hard work and unity.',
+    icon: TreePine,
+    color: '#22d3a5',
+    glow: 'rgba(34,211,165,0.25)',
+    emoji: '🌱',
   },
   {
-    id: 2,
-    bg: `url(${img2}) center / 100% 100% no-repeat`,
+    year: '1950s',
+    title: 'Growing Branches',
+    desc: 'The next generation expanded our reach. Children married, new households formed, and the family grew from one village into nearby towns.',
+    icon: HomeIcon,
+    color: '#7c5cfc',
+    glow: 'rgba(124,92,252,0.25)',
+    emoji: '🏡',
   },
   {
-    id: 3,
-    bg: `url(${img3}) center / 100% 100% no-repeat`,
+    year: '1970s',
+    title: 'Migration & Dreams',
+    desc: 'Driven by ambition, family members migrated to cities. Engineers, teachers, and entrepreneurs emerged — carrying the family name to new heights.',
+    icon: MapPin,
+    color: '#fc5ca8',
+    glow: 'rgba(252,92,168,0.25)',
+    emoji: '✈️',
+  },
+  {
+    year: '1990s',
+    title: 'The Baby Boom',
+    desc: 'A generation of new births, weddings, and celebrations. Family gatherings grew louder and the dinner table grew longer.',
+    icon: Baby,
+    color: '#f97316',
+    glow: 'rgba(249,115,22,0.25)',
+    emoji: '👶',
+  },
+  {
+    year: '2000s',
+    title: 'Digital Age',
+    desc: 'The world got smaller. WhatsApp groups replaced letters, video calls replaced visits, and our family stayed closer than ever despite the miles.',
+    icon: Globe,
+    color: '#5cf8fc',
+    glow: 'rgba(92,248,252,0.25)',
+    emoji: '🌐',
+  },
+  {
+    year: 'Today',
+    title: 'One Family, Forever',
+    desc: 'Five generations strong. Spread across cities, united by blood. This platform is our digital home — where every memory, every face, every story lives forever.',
+    icon: Heart,
+    color: '#fc5ca8',
+    glow: 'rgba(252,92,168,0.3)',
+    emoji: '❤️',
   },
 ];
 
@@ -47,11 +95,7 @@ function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: str
     return () => clearInterval(timer);
   }, [inView, target]);
 
-  return (
-    <span ref={ref} className="counter-value">
-      {count}{suffix}
-    </span>
-  );
+  return <span ref={ref} className="counter-value">{count}{suffix}</span>;
 }
 
 // ─── Sparkle Icon ───────────────────────────────────────────
@@ -63,11 +107,51 @@ function SparkleIcon({ style }: { style?: React.CSSProperties }) {
   );
 }
 
+// ─── Timeline Era Card ──────────────────────────────────────
+function EraCard({ era, index, total }: { era: typeof eras[0]; index: number; total: number }) {
+  const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  const Icon = era.icon;
+  const isLast = index === total - 1;
+
+  return (
+    <div
+      ref={ref}
+      className={`era-item ${inView ? 'era-visible' : ''}`}
+      style={{ '--era-color': era.color, '--era-glow': era.glow, '--era-delay': `${index * 0.08}s` } as React.CSSProperties}
+    >
+      {/* Left: Spine dot + connecting line */}
+      <div className="era-spine-col">
+        <div className="era-dot">
+          <Icon size={16} strokeWidth={2.2} />
+        </div>
+        {!isLast && <div className="era-line" />}
+      </div>
+
+      {/* Right: Content card */}
+      <div className="era-card">
+        {/* Top row: year badge + emoji */}
+        <div className="era-card-top">
+          <span className="era-year">{era.year}</span>
+          <span className="era-emoji">{era.emoji}</span>
+        </div>
+
+        <h3 className="era-title">{era.title}</h3>
+        <p className="era-desc">{era.desc}</p>
+
+        {/* Decorative bottom accent */}
+        <div className="era-accent" />
+      </div>
+    </div>
+  );
+}
+
 // ─── Home Page ────────────────────────────────────────────
 export default function Home() {
   const [slide, setSlide] = useState(0);
   const [members, setMembers] = useState<User[]>([]);
   const [galleryImages, setGalleryImages] = useState<DomeGalleryImage[]>([]);
+  const titleRef = useRef<HTMLDivElement>(null);
+  const { ref: storyHeaderRef, inView: storyHeaderInView } = useInView({ triggerOnce: true, threshold: 0.1 });
 
   // Auto-advance carousel
   useEffect(() => {
@@ -79,7 +163,7 @@ export default function Home() {
   useEffect(() => {
     apiGetMembers()
       .then(res => setMembers(res.data))
-      .catch(() => { });
+      .catch(() => {});
   }, []);
 
   // Fetch feed images for DomeGallery
@@ -89,42 +173,29 @@ export default function Home() {
       { src: img2, alt: 'Baldaniya Celebrations' },
       { src: img3, alt: 'Baldaniya Memories' },
     ];
-
     apiGetFeed(1)
       .then(res => {
         const postImages = res.data.posts
           .filter(p => p.mediaType === 'image' && p.mediaUrl)
-          .map(p => ({
-            src: p.mediaUrl,
-            alt: p.caption || `Post by ${p.author.name}`
-          }));
-        
-        if (postImages.length > 0) {
-          setGalleryImages([...postImages, ...defaults]);
-        } else {
-          setGalleryImages(defaults);
-        }
+          .map(p => ({ src: p.mediaUrl, alt: p.caption || `Post by ${p.author.name}` }));
+        setGalleryImages(postImages.length > 0 ? [...postImages, ...defaults] : defaults);
       })
-      .catch(() => {
-        setGalleryImages(defaults);
-      });
+      .catch(() => setGalleryImages(defaults));
   }, []);
-
 
   const { ref: statsRef, inView: statsInView } = useInView({ triggerOnce: true });
 
   return (
     <div className="page home-page">
+
       {/* ── Title Section ─────────────────────────────── */}
-      <div className="home-title-bar">
+      <div className="home-title-bar" ref={titleRef}>
         <h1>
           <SparkleIcon style={{ top: '-10px', left: '-20px', width: '20px', height: '20px', animationDelay: '0s', animationDuration: '1.5s' }} />
           <SparkleIcon style={{ top: '10px', right: '-30px', width: '28px', height: '28px', animationDelay: '0.5s', animationDuration: '2s' }} />
           <SparkleIcon style={{ bottom: '-5px', left: '20%', width: '16px', height: '16px', animationDelay: '1s', animationDuration: '2.5s' }} />
           <SparkleIcon style={{ top: '-15px', right: '20%', width: '24px', height: '24px', animationDelay: '1.2s', animationDuration: '1.8s' }} />
-          <FlipText duration={2.2} delay={0}>
-            BALDANIYA FAMILY
-          </FlipText>
+          <FlipText duration={2.2} delay={0}>BALDANIYA FAMILY</FlipText>
         </h1>
       </div>
 
@@ -137,27 +208,62 @@ export default function Home() {
             </div>
           ))}
         </div>
+        <div className="hero-dots">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              className={`hero-dot ${i === slide ? 'active' : ''}`}
+              onClick={() => setSlide(i)}
+              aria-label={`Slide ${i + 1}`}
+            />
+          ))}
+        </div>
       </section>
 
-      {/* ── Family History ────────────────────────────── */}
-      <section className="section family-history" id="family-history" style={{ paddingTop: '30px' }}>
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">Our Story</h2>
-            <p className="section-subtitle">A journey through generations of love and tradition</p>
-          </div>
+      {/* ══════════════════════════════════════════════════
+          OUR STORY — Premium Timeline Section
+      ══════════════════════════════════════════════════ */}
+      <section className="story-section" id="our-story">
 
-          <div className="story-content" style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto', fontSize: '0.8rem', lineHeight: '1.8', color: '#f0f0f8', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
-            <ScrollReveal
-              baseOpacity={0}
-              enableBlur={true}
-              baseRotation={0}
-              blurStrength={10}
-            >
-              Our family roots trace back over a century, when our ancestors first settled and built a life together. Over the decades, we've expanded across cities while keeping our bonds unbreakable. A generation of dreamers and achievers brought new skills and horizons to our family, and the digital age brought us closer than ever. Today, with five generations and countless memories, our unbreakable bond grows stronger every day.
-            </ScrollReveal>
+        {/* Ambient glows */}
+        <div className="story-glow story-glow-1" />
+        <div className="story-glow story-glow-2" />
+        <div className="story-glow story-glow-3" />
+
+        {/* Header */}
+        <div
+          ref={storyHeaderRef}
+          className={`story-header ${storyHeaderInView ? 'is-visible' : ''}`}
+        >
+          <div className="story-eyebrow">
+            <Sparkles size={13} />
+            <span>Our Journey</span>
+            <Sparkles size={13} />
+          </div>
+          <h2 className="story-main-title">Our Story</h2>
+          <p className="story-subtitle">
+            A century of love, laughter, and legacy — told through the chapters that shaped us.
+          </p>
+          <div className="story-divider">
+            <div className="story-divider-line" />
+            <Star size={10} fill="currentColor" />
+            <div className="story-divider-line" />
           </div>
         </div>
+
+        {/* Timeline list */}
+        <div className="story-timeline">
+          {eras.map((era, i) => (
+            <EraCard key={era.year} era={era} index={i} total={eras.length} />
+          ))}
+
+
+        </div>
+
+        {/* Bottom quote */}
+        <p className="story-quote">
+          "Five generations. One unbreakable bond."
+        </p>
       </section>
 
       {/* ── Family Facts ──────────────────────────────── */}
@@ -167,7 +273,6 @@ export default function Home() {
             <h2 className="section-title">By The Numbers</h2>
             <p className="section-subtitle">A snapshot of our incredible family</p>
           </div>
-
           <div className="stats-grid">
             {[
               { icon: Users, label: 'Family Members', value: members.length || 120, suffix: '+', color: 'var(--color-primary)' },
@@ -189,7 +294,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Immersive Family Gallery ─────────────────── */}
+      {/* ── Immersive Gallery ─────────────────────────── */}
       <section className="section family-interactive-gallery" id="family-interactive-gallery" style={{ padding: '60px 0 20px', background: '#000000' }}>
         <div className="container">
           <div className="section-header" style={{ marginBottom: '32px' }}>
@@ -198,7 +303,7 @@ export default function Home() {
           </div>
           <div className="dome-gallery-wrapper" style={{ height: '550px', position: 'relative', overflow: 'hidden', background: 'transparent' }}>
             {galleryImages.length > 0 && (
-              <DomeGallery 
+              <DomeGallery
                 images={galleryImages}
                 fit={0.65}
                 fitBasis="auto"

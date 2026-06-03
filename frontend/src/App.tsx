@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import BottomNavbar from './components/BottomNavbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
 
 import { lazy, Suspense } from 'react';
 
@@ -103,6 +104,7 @@ function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
+          <ScrollToTop />
           <AppContent />
 
           <Toaster
