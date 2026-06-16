@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
-import { Moon, Sun, LogOut } from 'lucide-react';
+import { Moon, Sun, LogOut, Bookmark } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 interface Props {
   onClose: () => void;
   onLogout: () => void;
+  onOpenSaved: () => void;
 }
 
-export default function SettingsMenu({ onClose, onLogout }: Props) {
+export default function SettingsMenu({ onClose, onLogout, onOpenSaved }: Props) {
   const { theme, toggleTheme } = useTheme();
 
   // Lock body scroll while sheet is open
@@ -89,6 +90,25 @@ export default function SettingsMenu({ onClose, onLogout }: Props) {
               boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
             }} />
           </div>
+        </div>
+
+        {/* Saved Posts */}
+        <div
+          onClick={() => {
+            onClose();
+            onOpenSaved();
+          }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            padding: '18px 24px', cursor: 'pointer',
+            borderBottom: '1px solid var(--color-border)',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface-2)')}
+          onMouseLeave={e => (e.currentTarget.style.background = '')}
+        >
+          <Bookmark size={20} color="var(--color-text)" />
+          <span style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-text)' }}>Saved Posts</span>
         </div>
 
         {/* Log Out */}

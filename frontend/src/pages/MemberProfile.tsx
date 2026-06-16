@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { X, Play, Grid, Film, Settings, Search, ArrowLeft, Plus, Image, Video } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiGetMember, apiFollow, apiGetFollowers, apiGetFollowing, apiUpdateProfile, apiCreatePost, apiDeletePost } from '../api';
+import { apiGetMember, apiFollow, apiGetFollowers, apiGetFollowing, apiUpdateProfile, apiCreatePost, apiDeletePost, apiGetSavedPosts } from '../api';
 import type { User, Post } from '../types';
 import PostLightbox from '../components/PostLightbox';
 import SettingsMenu from '../components/SettingsMenu';
@@ -791,11 +791,159 @@ function PostGrid({ posts, onPostClick, emptyTitle }: {
   );
 }
 
+// ─── Saved Posts Modal ────────────────────────────────────
+function SavedPostsModal({ onClose }: { onClose: () => void }) {
+  const { user: me } = useAuth();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+
+  // Lock body scroll while open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  // Fetch saved posts
+  useEffect(() => {
+    apiGetSavedPosts()
+      .then(res => setPosts(res.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Instantly filter out any post that gets unsaved (via user savedPosts context updates)
+  useEffect(() => {
+    if (me?.savedPosts) {
+      setPosts(prev => prev.filter(p => me.savedPosts?.includes(p._id)));
+    }
+  }, [me?.savedPosts]);
+
+  return (
+    <div className="modal-overlay saved-posts-modal-overlay" onClick={onClose} style={{ zIndex: 1100 }}>
+      <div className="modal animate-scale-in saved-posts-modal" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="saved-posts-modal-header">
+          <button className="icon-btn" onClick={onClose}>
+            <ArrowLeft size={26} strokeWidth={2.5} />
+          </button>
+          <h3 style={{ fontWeight: 700, fontSize: 16 }}>Saved Posts</h3>
+          <div style={{ width: 40 }} />
+        </div>
+
+        {/* Content */}
+        <div className="saved-posts-modal-body">
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: 300 }}>
+              <div className="spinner" style={{ width: 32, height: 32 }} />
+            </div>
+          ) : posts.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 300, padding: '40px 20px', textAlign: 'center', color: 'var(--color-text-2)' }}>
+              <div style={{ fontSize: 44, marginBottom: 12 }}>🔖</div>
+              <p style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: 16, margin: '0 0 6px' }}>Save photos and videos</p>
+              <p style={{ fontSize: 13, margin: 0, opacity: 0.8 }}>Saved posts will appear here. They are only visible to you.</p>
+            </div>
+          ) : (
+            <div className="profile-posts-grid">
+              {posts.map((post, idx) => (
+                <div key={post._id} className="profile-post-wrapper" onClick={() => setLightboxIdx(idx)}>
+                  <div className="post-item" style={{ cursor: 'pointer' }}>
+                    {post.mediaType === 'video'
+                      ? <video src={post.mediaUrl} className="post-item-media" muted />
+                      : <img src={post.mediaUrl} alt={post.caption} className="post-item-media" loading="lazy" />
+                    }
+                    <div className="post-item-overlay">
+                      {post.mediaType === 'video' && <Play size={24} fill="white" />}
+                      <span className="post-item-likes">❤️ {post.likes?.length || 0}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {lightboxIdx !== null && (
+        <PostLightbox
+          post={posts[lightboxIdx]}
+          allPosts={posts}
+          onClose={() => setLightboxIdx(null)}
+          onDelete={(postId) => {
+            setPosts(prev => prev.filter(p => p._id !== postId));
+            if (posts.length <= 1) setLightboxIdx(null);
+          }}
+          onLikeToggle={(postId, liked, _likeCount) => {
+            setPosts(prev => prev.map(p => {
+              if (p._id === postId) {
+                const userLikes = Array.isArray(p.likes) ? p.likes : [];
+                const alreadyLiked = userLikes.includes(me?._id || '');
+                let newLikes = [...userLikes];
+                if (liked && !alreadyLiked) {
+                  newLikes.push(me?._id || '');
+                } else if (!liked && alreadyLiked) {
+                  newLikes = newLikes.filter(id => id !== (me?._id || ''));
+                }
+                return { ...p, likes: newLikes };
+              }
+              return p;
+            }));
+          }}
+        />
+      )}
+
+      <style>{`
+        .saved-posts-modal-overlay {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .saved-posts-modal {
+          max-width: 800px;
+          width: 90%;
+          height: 85%;
+          display: flex;
+          flex-direction: column;
+          padding: 0 !important;
+          overflow: hidden;
+        }
+        .saved-posts-modal-header {
+          border-bottom: 1px solid var(--color-border);
+          padding: 12px 16px;
+          display: flex;
+          align-items: center;
+          height: 56px;
+          flex-shrink: 0;
+          justify-content: space-between;
+          background: var(--color-bg);
+        }
+        .saved-posts-modal-body {
+          flex: 1;
+          overflow-y: auto;
+          padding: 4px;
+          background: var(--color-bg);
+        }
+        
+        @media (max-width: 640px) {
+          .saved-posts-modal {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── Main Profile Page ────────────────────────────────────
 export default function MemberProfile({ usernameOverride }: { usernameOverride?: string } = {}) {
   const params = useParams<{ username: string }>();
   const username = usernameOverride || params.username;
   const { user: me, logout, setUser } = useAuth();
+  const myId = me?._id;
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState<User | null>(null);
@@ -803,7 +951,7 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState(false);
   const [postTab, setPostTab] = useState<'all' | 'images' | 'videos'>('all');
-  const [modal, setModal] = useState<'followers' | 'following' | 'editProfile' | 'sharePost' | 'createPost' | 'settings' | 'confirmLogout' | null>(null);
+  const [modal, setModal] = useState<'followers' | 'following' | 'editProfile' | 'sharePost' | 'createPost' | 'settings' | 'confirmLogout' | 'savedPosts' | null>(null);
   const [postAcceptType, setPostAcceptType] = useState('image/*,video/*');
   const [postInitialFile, setPostInitialFile] = useState<File | undefined>(undefined);
   const [followersList, setFollowersList] = useState<User[]>([]);
@@ -837,13 +985,13 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
       .then(res => {
         setProfile(res.data.user);
         setPosts(res.data.posts);
-        if (me) {
-          setFollowing(res.data.user.followers?.some((f: any) => f._id === me._id || f === me._id));
+        if (myId) {
+          setFollowing(res.data.user.followers?.some((f: any) => f._id === myId || f === myId));
         }
       })
       .catch(() => setProfile(null))
       .finally(() => setLoading(false));
-  }, [username, me]);
+  }, [username, myId]);
 
   const handleFollow = async () => {
     if (!me) { navigate('/login?redirect=/members/' + username); return; }
@@ -1205,6 +1353,13 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
         <SettingsMenu
           onClose={() => setModal(null)}
           onLogout={handleLogout}
+          onOpenSaved={() => setModal('savedPosts')}
+        />
+      )}
+
+      {modal === 'savedPosts' && (
+        <SavedPostsModal
+          onClose={() => setModal(null)}
         />
       )}
 
@@ -1224,6 +1379,22 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
           onDelete={(postId) => {
             setPosts(prev => prev.filter(p => p._id !== postId));
             if (posts.length <= 1) setLightboxIdx(null);
+          }}
+          onLikeToggle={(postId, liked, _likeCount) => {
+            setPosts(prev => prev.map(p => {
+              if (p._id === postId) {
+                const userLikes = Array.isArray(p.likes) ? p.likes : [];
+                const alreadyLiked = userLikes.includes(me?._id || '');
+                let newLikes = [...userLikes];
+                if (liked && !alreadyLiked) {
+                  newLikes.push(me?._id || '');
+                } else if (!liked && alreadyLiked) {
+                  newLikes = newLikes.filter(id => id !== (me?._id || ''));
+                }
+                return { ...p, likes: newLikes };
+              }
+              return p;
+            }));
           }}
         />
       )}

@@ -1,5 +1,6 @@
 const express = require('express');
 const Post = require('../models/Post');
+const User = require('../models/User');
 const { auth } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const cloudinary = require('../config/cloudinary');
@@ -66,7 +67,6 @@ router.get('/feed', async (req, res) => {
 });
 
 // GET /api/posts/member/:username — posts by one member
-const User = require('../models/User');
 router.get('/member/:username', async (req, res) => {
   try {
     const user = await User.findOne({
@@ -121,6 +121,47 @@ router.delete('/:id', auth, async (req, res) => {
     await post.deleteOne();
     await cache.del('posts:feed:1:20');
     res.json({ message: 'Post deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/posts/:id/save — toggle save post
+router.post('/:id/save', auth, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const isSaved = user.savedPosts.some(id => id.equals(post._id));
+    if (isSaved) {
+      user.savedPosts.pull(post._id);
+    } else {
+      user.savedPosts.addToSet(post._id);
+    }
+    await user.save();
+    res.json({ saved: !isSaved });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/posts/saved — get all saved posts for current user
+router.get('/saved', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).populate({
+      path: 'savedPosts',
+      populate: {
+        path: 'author',
+        select: 'username name profilePhoto'
+      }
+    });
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const validSavedPosts = user.savedPosts.filter(post => post !== null).reverse();
+    res.json(validSavedPosts);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }

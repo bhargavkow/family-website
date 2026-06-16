@@ -2,19 +2,26 @@ import axios from 'axios';
 
 const getBaseURL = () => {
   const envUrl = import.meta.env.VITE_API_URL;
-  
-  // 1. If we are on a production URL (Vercel), always use the environment variable
-  if (envUrl && envUrl.includes('onrender.com')) return envUrl;
-
-  // 2. If we are testing on a phone (accessing via IP like 192.168.x.x), 
-  // dynamically point to the backend on the same IP
   const hostname = window.location.hostname;
-  if (hostname !== 'localhost' && hostname !== '127.0.0.1' && !hostname.includes('vercel.app')) {
-    return `http://${hostname}:5000/api`;
+
+  // 1. If running in development mode (Vite dev server)
+  if (import.meta.env.DEV) {
+    // If testing on a phone/LAN (accessing via IP like 192.168.x.x), 
+    // dynamically point to the backend on the same IP
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return `http://${hostname}:5000/api`;
+    }
+    return envUrl || 'http://localhost:5000/api';
   }
 
-  // 3. Fallback to env variable or localhost
-  return envUrl || 'http://localhost:5000/api';
+  // 2. If running in production mode
+  // If VITE_API_URL is configured, use it (e.g. EC2/ECS/Elastic Beanstalk/Render URL)
+  if (envUrl) {
+    return envUrl;
+  }
+
+  // Fallback to relative API path if frontend and backend share the same domain/proxy
+  return '/api';
 };
 
 const client = axios.create({

@@ -47,6 +47,12 @@ export const apiLikePost = (id: string) =>
 
 export const apiDeletePost = (id: string) => client.delete(`/posts/${id}`);
 
+export const apiSavePost = (id: string) =>
+  client.post<{ saved: boolean }>(`/posts/${id}/save`);
+
+export const apiGetSavedPosts = () =>
+  client.get<Post[]>('/posts/saved');
+
 // ─── Messages ────────────────────────────────────────────
 export const apiGetConversations = () =>
   client.get<Conversation[]>('/messages/conversations');

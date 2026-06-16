@@ -10,6 +10,7 @@ export interface User {
   profilePhoto: { url: string; publicId: string };
   followers: User[] | string[];
   following: User[] | string[];
+  savedPosts?: string[];
   isActive: boolean;
   isAdmin: boolean;
   createdAt: string;

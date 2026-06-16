@@ -5,10 +5,11 @@ const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
+const isProd = process.env.NODE_ENV === 'production';
 const cookieOptions = {
   httpOnly: true,
-  secure: true, // Always true for cross-site cookies over HTTPS
-  sameSite: 'none', // Required for cross-domain (Vercel to Render)
+  secure: isProd, // HTTPS in production, HTTP in local development
+  sameSite: isProd ? 'none' : 'lax', // Cross-domain in production, lax for local development
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 

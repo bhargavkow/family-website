@@ -4,6 +4,7 @@ import { Search as SearchIcon, X, Play, FolderOpen, ArrowLeft } from 'lucide-rea
 import { apiSearchMembers, apiGetFeed, apiGetMoments, apiGetMembers } from '../api';
 import type { Moment } from '../api';
 import type { User, Post } from '../types';
+import { useAuth } from '../context/AuthContext';
 import PostLightbox from '../components/PostLightbox';
 import './Search.css';
 import './Members.css';
@@ -361,6 +362,7 @@ function SpecialMomentsSection() {
 // ─── Main Search Page ─────────────────────────────────────
 export default function Search() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
@@ -747,6 +749,22 @@ export default function Search() {
           post={posts[lightboxIdx]}
           allPosts={posts}
           onClose={() => setLightboxIdx(null)}
+          onLikeToggle={(postId, liked, _likeCount) => {
+            setPosts(prev => prev.map(p => {
+              if (p._id === postId) {
+                const userLikes = Array.isArray(p.likes) ? p.likes : [];
+                const alreadyLiked = userLikes.includes(user?._id || '');
+                let newLikes = [...userLikes];
+                if (liked && !alreadyLiked) {
+                  newLikes.push(user?._id || '');
+                } else if (!liked && alreadyLiked) {
+                  newLikes = newLikes.filter(id => id !== (user?._id || ''));
+                }
+                return { ...p, likes: newLikes };
+              }
+              return p;
+            }));
+          }}
         />
       )}
     </div>

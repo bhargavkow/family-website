@@ -2,7 +2,7 @@ import { Heart, MessageCircle, Send, Bookmark, ChevronLeft, MoreHorizontal, Tras
 import { useState, useEffect, useRef } from 'react';
 import type { Post } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { apiLikePost, apiDeletePost } from '../api';
+import { apiLikePost, apiDeletePost, apiSavePost } from '../api';
 import './PostLightbox.css';
 
 interface Props {
@@ -10,9 +10,10 @@ interface Props {
   allPosts: Post[];
   onClose: () => void;
   onDelete?: (postId: string) => void;
+  onLikeToggle?: (postId: string, liked: boolean, likeCount: number) => void;
 }
 
-export default function PostLightbox({ post, allPosts, onClose, onDelete }: Props) {
+export default function PostLightbox({ post, allPosts, onClose, onDelete, onLikeToggle }: Props) {
   const { user } = useAuth();
   const [posts, setPosts] = useState(allPosts);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -29,6 +30,26 @@ export default function PostLightbox({ post, allPosts, onClose, onDelete }: Prop
     setPosts(prev => prev.filter(p => p._id !== postId));
     if (onDelete) onDelete(postId);
     if (posts.length <= 1) onClose();
+  };
+
+  const handleLikeToggle = (postId: string, liked: boolean, likeCount: number) => {
+    setPosts(prev => prev.map(p => {
+      if (p._id === postId) {
+        const userLikes = Array.isArray(p.likes) ? p.likes : [];
+        const alreadyLiked = userLikes.includes(user?._id || '');
+        let newLikes = [...userLikes];
+        if (liked && !alreadyLiked) {
+          newLikes.push(user?._id || '');
+        } else if (!liked && alreadyLiked) {
+          newLikes = newLikes.filter(id => id !== (user?._id || ''));
+        }
+        return { ...p, likes: newLikes };
+      }
+      return p;
+    }));
+    if (onLikeToggle) {
+      onLikeToggle(postId, liked, likeCount);
+    }
   };
 
   return (
@@ -49,6 +70,7 @@ export default function PostLightbox({ post, allPosts, onClose, onDelete }: Prop
               post={p}
               currentUser={user}
               onDelete={handleDelete}
+              onLikeToggle={handleLikeToggle}
             />
           ))}
         </div>
@@ -206,19 +228,80 @@ export default function PostLightbox({ post, allPosts, onClose, onDelete }: Prop
   );
 }
 
-function PostItem({ post, currentUser, onDelete }: {
+function PostItem({ post, currentUser, onDelete, onLikeToggle }: {
   post: Post;
   currentUser: any;
   onDelete: (id: string) => void;
+  onLikeToggle?: (postId: string, liked: boolean, likeCount: number) => void;
 }) {
+  const { setUser } = useAuth();
   const [liked, setLiked] = useState(post.likes.includes(currentUser?._id || ''));
   const [likeCount, setLikeCount] = useState(post.likes.length);
+  const [saved, setSaved] = useState(currentUser?.savedPosts?.includes(post._id) || false);
   const [showMenu, setShowMenu] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const isOwner = currentUser?._id === (post.author as any)?._id ||
-                  currentUser?.username === post.author?.username;
+    currentUser?.username === post.author?.username;
+
+  // Track the optimistic/visual state to handle rapid clicks
+  const stateRef = useRef({ liked, likeCount });
+  useEffect(() => {
+    stateRef.current = { liked, likeCount };
+  }, [liked, likeCount]);
+
+  // Synchronize when the post prop itself changes (e.g. from parent updates)
+  useEffect(() => {
+    const isLiked = post.likes.includes(currentUser?._id || '');
+    setLiked(isLiked);
+    setLikeCount(post.likes.length);
+    stateRef.current = { liked: isLiked, likeCount: post.likes.length };
+    setSaved(currentUser?.savedPosts?.includes(post._id) || false);
+  }, [post._id, post.likes, currentUser?._id, currentUser?.savedPosts]);
+
+  const handleSave = async () => {
+    if (!currentUser) return;
+    const nextSaved = !saved;
+    setSaved(nextSaved);
+
+    // Optimistically update AuthContext user savedPosts
+    const updatedUser = {
+      ...currentUser,
+      savedPosts: nextSaved
+        ? [...(currentUser.savedPosts || []), post._id]
+        : (currentUser.savedPosts || []).filter((id: string) => id !== post._id)
+    };
+    setUser(updatedUser);
+
+    try {
+      const res = await apiSavePost(post._id);
+      const verifiedSaved = res.data.saved;
+      if (verifiedSaved !== nextSaved) {
+        setSaved(verifiedSaved);
+        const finalUser = {
+          ...currentUser,
+          savedPosts: verifiedSaved
+            ? [...(currentUser.savedPosts || []), post._id]
+            : (currentUser.savedPosts || []).filter((id: string) => id !== post._id)
+        };
+        setUser(finalUser);
+      }
+    } catch {
+      // Revert on failure
+      setSaved(!nextSaved);
+      const revertedUser = {
+        ...currentUser,
+        savedPosts: !nextSaved
+          ? [...(currentUser.savedPosts || []), post._id]
+          : (currentUser.savedPosts || []).filter((id: string) => id !== post._id)
+      };
+      setUser(revertedUser);
+    }
+  };
+
+  // Sequential promise chain to execute API calls in strict order
+  const likePromiseChain = useRef<Promise<any>>(Promise.resolve());
 
   // Close menu on outside click
   useEffect(() => {
@@ -232,18 +315,54 @@ function PostItem({ post, currentUser, onDelete }: {
     return () => document.removeEventListener('mousedown', handler);
   }, [showMenu]);
 
-  const handleLike = async () => {
+  const handleLike = () => {
     if (!currentUser) return;
-    try {
-      const res = await apiLikePost(post._id);
-      setLiked(res.data.liked);
-      setLikeCount(res.data.likeCount);
-    } catch { /* no-op */ }
+
+    const currentLiked = stateRef.current.liked;
+    const currentLikeCount = stateRef.current.likeCount;
+
+    const nextLiked = !currentLiked;
+    const nextLikeCount = currentLikeCount + (nextLiked ? 1 : -1);
+
+    // Update ref and state immediately
+    stateRef.current = { liked: nextLiked, likeCount: nextLikeCount };
+    setLiked(nextLiked);
+    setLikeCount(nextLikeCount);
+
+    if (onLikeToggle) {
+      onLikeToggle(post._id, nextLiked, nextLikeCount);
+    }
+
+    // Queue the API call sequentially
+    likePromiseChain.current = likePromiseChain.current.then(async () => {
+      try {
+        const res = await apiLikePost(post._id);
+        // Only apply if user hasn't toggled again in the meantime
+        if (stateRef.current.liked === nextLiked) {
+          setLiked(res.data.liked);
+          setLikeCount(res.data.likeCount);
+          stateRef.current = { liked: res.data.liked, likeCount: res.data.likeCount };
+          if (onLikeToggle) {
+            onLikeToggle(post._id, res.data.liked, res.data.likeCount);
+          }
+        }
+      } catch (err) {
+        // Revert to the state before this click if user hasn't toggled again
+        if (stateRef.current.liked === nextLiked) {
+          setLiked(currentLiked);
+          setLikeCount(currentLikeCount);
+          stateRef.current = { liked: currentLiked, likeCount: currentLikeCount };
+          if (onLikeToggle) {
+            onLikeToggle(post._id, currentLiked, currentLikeCount);
+          }
+        }
+      }
+    });
   };
 
   const [showHeart, setShowHeart] = useState(false);
   const handleDoubleClick = () => {
-    if (!liked) handleLike();
+    if (!stateRef.current.liked) handleLike();
     setShowHeart(true);
     setTimeout(() => setShowHeart(false), 1000);
   };
@@ -321,8 +440,8 @@ function PostItem({ post, currentUser, onDelete }: {
             <Send size={26} />
           </button>
         </div>
-        <button style={{ background: 'none', border: 'none', padding: 0, color: 'var(--color-text)' }}>
-          <Bookmark size={26} />
+        <button onClick={handleSave} style={{ background: 'none', border: 'none', padding: 0, color: saved ? 'var(--color-primary)' : 'var(--color-text)' }}>
+          <Bookmark size={26} fill={saved ? 'currentColor' : 'none'} />
         </button>
       </div>
 

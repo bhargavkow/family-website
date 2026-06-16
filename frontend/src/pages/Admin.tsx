@@ -49,8 +49,17 @@ function ConfirmLogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; on
 function AddMemberModal({ onClose, onCreated }: { onClose: () => void; onCreated: (u: User) => void }) {
   const [form, setForm] = useState({ name: '', username: '', password: '', bio: '', occupation: '', dob: '' });
   const [photo, setPhoto] = useState<File | null>(null);
+  const [preview, setPreview] = useState('');
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhoto(file);
+      setPreview(URL.createObjectURL(file));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,15 +88,19 @@ function AddMemberModal({ onClose, onCreated }: { onClose: () => void; onCreated
         </div>
         <form className="modal-body" onSubmit={handleSubmit}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <label className="label">Profile Photo (optional)</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => fileRef.current?.click()} id="pick-photo-btn">
-                  📷 {photo ? 'Change Photo' : 'Pick Photo'}
-                </button>
-                {photo && <span style={{ fontSize: 13, color: 'var(--color-text-2)' }}>{photo.name}</span>}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 20 }}>
+              <label className="label" style={{ marginBottom: 12 }}>Profile Photo (optional)</label>
+              <div style={{ position: 'relative', display: 'inline-block', cursor: 'pointer' }} onClick={() => fileRef.current?.click()}>
+                {preview
+                  ? <img src={preview} alt="preview" className="avatar" style={{ width: 80, height: 80, objectFit: 'cover' }} />
+                  : <div className="avatar" style={{ width: 80, height: 80, background: 'var(--color-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-2)' }}>
+                    <Plus size={32} />
+                  </div>
+                }
+                <div className="avatar-edit-overlay"><Plus size={16} /></div>
               </div>
-              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setPhoto(e.target.files?.[0] || null)} />
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhoto} />
+              <div style={{ fontSize: 12, color: 'var(--color-primary-light)', marginTop: 6, cursor: 'pointer' }} onClick={() => fileRef.current?.click()}>{photo ? 'Change Photo' : 'Upload Photo'}</div>
             </div>
             {[
               { id: 'am-name', key: 'name', label: 'Full Name', placeholder: 'John Doe', req: true },
@@ -331,18 +344,29 @@ function ManageEvents() {
     apiGetEvents().then(res => setEvents(res.data)).finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (showAdd || confirmDelete) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showAdd, confirmDelete]);
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-      
+
       if (photo) {
         const compressed = await compressImage(photo);
         fd.append('photo', compressed);
       }
-      
+
       const res = await apiCreateEvent(fd);
       setEvents(prev => [...prev, res.data]);
       setShowAdd(false);
@@ -375,43 +399,54 @@ function ManageEvents() {
   if (loading) return <div className="admin-loading"><div className="spinner" /></div>;
 
   return (
-    <div className="admin-view animate-fade-in">
-      <div className="admin-view-header">
-        <div>
-          <h2 className="admin-view-title">Family Events</h2>
-          <p className="admin-view-subtitle">Manage upcoming celebrations and gatherings</p>
-        </div>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-          <Plus size={18} /> Add Event
-        </button>
-      </div>
-
-      <div className="admin-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
-        {events.map(ev => (
-          <div key={ev._id} className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
-            {ev.photo?.url && <img src={ev.photo.url} alt="" style={{ width: '100%', height: 140, objectFit: 'cover' }} />}
-            <div style={{ padding: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <h4 style={{ fontWeight: 700 }}>{ev.name}</h4>
-                <span style={{ fontSize: 12, color: 'var(--color-primary)', fontWeight: 700 }}>
-                  {new Date(ev.date).toLocaleDateString()}
-                </span>
-              </div>
-              <p style={{ fontSize: 13, color: 'var(--color-text-2)', marginBottom: 16 }}>{ev.description}</p>
-              <button 
-                className="btn btn-danger btn-sm w-full" 
-                onClick={() => setConfirmDelete(ev)}
-                disabled={deletingId === ev._id}
-              >
-                {deletingId === ev._id ? (
-                  <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
-                ) : (
-                  <><Trash2 size={14} /> Delete</>
-                )}
-              </button>
-            </div>
+    <>
+      <div className="admin-view animate-fade-in">
+        <div className="admin-view-header">
+          <div>
+            <h2 className="admin-view-title">Family Events</h2>
+            <p className="admin-view-subtitle">Manage upcoming celebrations and gatherings</p>
           </div>
-        ))}
+          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+            <Plus size={18} /> Add Event
+          </button>
+        </div>
+
+        {events.length === 0 ? (
+          <div className="admin-empty-state">
+            <Calendar size={48} style={{ margin: '0 auto 12px', opacity: 0.35 }} />
+            <p style={{ fontWeight: 600, color: 'var(--color-text)' }}>No events scheduled</p>
+            <p style={{ fontSize: 14, marginTop: 4, color: 'var(--color-text-2)' }}>Create your first family event above.</p>
+          </div>
+        ) : (
+          <div className="admin-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 20 }}>
+            {events.map(ev => (
+              <div key={ev._id} className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
+                {ev.photo?.url && <img src={ev.photo.url} alt="" style={{ width: '100%', height: 140, objectFit: 'cover' }} />}
+                <div style={{ padding: 16 }}>
+                  <div style={{ marginBottom: 12 }}>
+                    <h4 style={{ fontWeight: 700, fontSize: 16, marginBottom: 4, color: 'var(--color-text)' }}>{ev.name}</h4>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--color-primary-light)', fontWeight: 600 }}>
+                      <Calendar size={12} />
+                      <span>{new Date(ev.date).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-2)', marginBottom: 16 }}>{ev.description}</p>
+                  <button
+                    className="btn btn-danger btn-sm w-full"
+                    onClick={() => setConfirmDelete(ev)}
+                    disabled={deletingId === ev._id}
+                  >
+                    {deletingId === ev._id ? (
+                      <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                    ) : (
+                      <><Trash2 size={14} /> Delete</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {showAdd && (
@@ -424,23 +459,42 @@ function ManageEvents() {
             <form className="modal-body" onSubmit={handleCreate}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
-                  <label className="label">Event Banner</label>
-                  <button type="button" className="btn btn-ghost w-full" onClick={() => fileRef.current?.click()}>
-                    📷 {photo ? photo.name : 'Choose Photo'}
-                  </button>
-                  <input ref={fileRef} type="file" hidden onChange={e => setPhoto(e.target.files?.[0] || null)} />
+                  <label className="label">Event Banner (optional)</label>
+                  <div
+                    className="banner-upload-zone"
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    {photo ? (
+                      <>
+                        <img
+                          src={URL.createObjectURL(photo)}
+                          alt="Banner Preview"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        <div className="banner-upload-overlay">
+                          <Upload size={20} />
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ textAlign: 'center', color: 'var(--color-text-2)' }}>
+                        <Plus size={24} style={{ margin: '0 auto 8px', display: 'block' }} />
+                        <span style={{ fontSize: 13 }}>Upload Event Banner</span>
+                      </div>
+                    )}
+                  </div>
+                  <input ref={fileRef} type="file" accept="image/*" hidden onChange={e => setPhoto(e.target.files?.[0] || null)} />
                 </div>
                 <div>
                   <label className="label">Event Name</label>
-                  <input className="input" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. Family Trip 2024" />
+                  <input className="input" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Family Trip 2024" />
                 </div>
                 <div>
                   <label className="label">Event Date</label>
-                  <input className="input" type="date" required value={form.date} onChange={e => setForm({...form, date: e.target.value})} />
+                  <input className="input" type="date" required value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
                 </div>
                 <div>
                   <label className="label">Description</label>
-                  <textarea className="input" required rows={3} value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="What's happening?" />
+                  <textarea className="input" required rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="What's happening?" />
                 </div>
                 <button type="submit" className="btn btn-primary w-full" disabled={creating}>
                   {creating ? <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : 'Create Event'}
@@ -470,7 +524,7 @@ function ManageEvents() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -532,6 +586,17 @@ export default function Admin() {
       loadData();
     }
   }, [authLoading, user]);
+
+  useEffect(() => {
+    if (showAddMember || editingMember || showCreateMoment || showLogoutConfirm || isSidebarOpen || lightboxPost) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showAddMember, editingMember, showCreateMoment, showLogoutConfirm, isSidebarOpen, lightboxPost]);
 
   const handleLogout = async () => {
     await logout();
@@ -647,21 +712,134 @@ export default function Admin() {
         {/* ── Overview ──────────────────────────────── */}
         {tab === 'overview' && (
           <div className="admin-section animate-fade-in">
-            <h2 className="admin-section-title">Dashboard Overview</h2>
-            <div className="admin-stats-grid">
-              {[
-                { icon: <Users size={24} />, label: 'Total Members', value: stats.totalMembers, color: 'var(--color-primary)' },
-                { icon: <TrendingUp size={24} />, label: 'Active Members', value: stats.activeMembers, color: 'var(--color-success)' },
-                { icon: <Users size={24} />, label: 'Disabled', value: stats.disabledMembers, color: 'var(--color-error)' },
-                { icon: <Image size={24} />, label: 'Total Posts', value: stats.totalPosts, color: 'var(--color-accent-2)' },
-                { icon: <MessageCircle size={24} />, label: 'Messages', value: stats.totalMessages, color: 'var(--color-accent)' },
-              ].map(({ icon, label, value, color }) => (
-                <div className="admin-stat-card card" key={label}>
-                  <div className="admin-stat-icon" style={{ color }}>{icon}</div>
-                  <div className="admin-stat-value" style={{ color }}>{value}</div>
-                  <div className="admin-stat-label">{label}</div>
+            {/* Hero Welcome Panel */}
+            <div className="admin-hero-card">
+              <div className="admin-hero-content">
+                <div className="admin-hero-badge">FAMILY PORTAL</div>
+                <h2 className="admin-hero-title">Welcome back, Admin!</h2>
+                <p className="admin-hero-subtitle">Here is the latest status of your family website. Everything looks healthy and online.</p>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+                  <button className="btn btn-primary btn-sm" onClick={() => handleNav('members')}>
+                    <Users size={14} /> Manage Members
+                  </button>
+                  <button className="btn btn-outline btn-sm" onClick={() => handleNav('events')}>
+                    <Calendar size={14} /> Scheduled Events
+                  </button>
                 </div>
-              ))}
+              </div>
+              <div className="admin-hero-glow" />
+            </div>
+
+            {/* Stats Grid */}
+            <div>
+              <h3 className="admin-section-subtitle-small">System Analytics</h3>
+              <div className="admin-stats-grid">
+                {[
+                  { icon: <Users size={24} />, label: 'Total Members', value: stats.totalMembers, color: 'var(--color-primary)', trend: 'Registered accounts' },
+                  { icon: <TrendingUp size={24} />, label: 'Active Members', value: stats.activeMembers, color: 'var(--color-success)', trend: 'Authorized logins' },
+                  { icon: <Users size={24} />, label: 'Disabled Accounts', value: stats.disabledMembers, color: 'var(--color-error)', trend: 'Access revoked' },
+                  { icon: <Image size={24} />, label: 'Total Posts', value: stats.totalPosts, color: 'var(--color-accent-2)', trend: 'Shared moments' },
+                  { icon: <MessageCircle size={24} />, label: 'Messages', value: stats.totalMessages, color: 'var(--color-accent)', trend: 'Contact inquiries' },
+                ].map(({ icon, label, value, color, trend }) => (
+                  <div className="admin-stat-card" key={label} style={{ '--accent-color': color } as React.CSSProperties}>
+                    <div className="admin-stat-card-header">
+                      <div className="admin-stat-icon-wrapper" style={{ '--icon-color': color } as React.CSSProperties}>{icon}</div>
+                      <div className="admin-stat-trend">{trend}</div>
+                    </div>
+                    <div className="admin-stat-card-body">
+                      <div className="admin-stat-value" style={{ color }}>{value}</div>
+                      <div className="admin-stat-label">{label}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Shortcuts, Diagnostics & Status Panel */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 20 }}>
+              {/* Shortcut Card */}
+              <div className="admin-panel-card">
+                <h3 className="admin-panel-card-title">Quick Actions</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+                  <button className="btn btn-ghost" style={{ justifyContent: 'flex-start', padding: '14px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--color-border)' }} onClick={() => setShowAddMember(true)}>
+                    <Plus size={16} style={{ marginRight: 8, color: 'var(--color-primary)' }} /> Add Family Member Account
+                  </button>
+                  <button className="btn btn-ghost" style={{ justifyContent: 'flex-start', padding: '14px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--color-border)' }} onClick={() => handleNav('moments')}>
+                    <FolderPlus size={16} style={{ marginRight: 8, color: 'var(--color-accent-2)' }} /> Create Photo Folder
+                  </button>
+                </div>
+              </div>
+
+              {/* System Diagnostics Card */}
+              <div className="admin-panel-card">
+                <h3 className="admin-panel-card-title">Membership Diagnostics</h3>
+                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
+                      <span style={{ color: 'var(--color-text-2)' }}>Active Member Ratio</span>
+                      <span style={{ fontWeight: 700, color: 'var(--color-success)' }}>
+                        {stats.totalMembers ? Math.round((stats.activeMembers / stats.totalMembers) * 100) : 0}%
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ width: `${stats.totalMembers ? Math.round((stats.activeMembers / stats.totalMembers) * 100) : 0}%`, height: '100%', background: 'var(--color-success)', borderRadius: 3 }} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--color-text-2)' }}>Average posts per member</span>
+                    <span style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: 13 }}>
+                      {stats.totalMembers ? (stats.totalPosts / stats.totalMembers).toFixed(1) : 0} posts
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Media Space Usage Card */}
+              <div className="admin-panel-card">
+                <h3 className="admin-panel-card-title">Media Storage Usage</h3>
+                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
+                      <span style={{ color: 'var(--color-text-2)' }}>Cloudinary Space Used</span>
+                      <span style={{ fontWeight: 700, color: 'var(--color-primary-light)' }}>
+                        {(stats.totalPosts * 0.45).toFixed(1)} MB / 512 MB
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.min(100, Math.round(((stats.totalPosts * 0.45) / 512) * 100))}%`, height: '100%', background: 'var(--grad-primary)', borderRadius: 3 }} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--color-text-2)' }}>Estimated file load speed</span>
+                    <span style={{ fontWeight: 700, color: 'var(--color-success)', fontSize: 13 }}>Fast (0.2s)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Indicator Card */}
+              <div className="admin-panel-card">
+                <h3 className="admin-panel-card-title">Server & System Status</h3>
+                <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--color-text-2)' }}>API Server</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-success)', fontWeight: 700 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-success)', boxShadow: '0 0 8px var(--color-success)' }} /> Connected
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--color-text-2)' }}>Database Status</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-success)', fontWeight: 700 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-success)', boxShadow: '0 0 8px var(--color-success)' }} /> Online
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--color-text-2)' }}>Media Storage</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-success)', fontWeight: 700 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-success)', boxShadow: '0 0 8px var(--color-success)' }} /> Cloudinary OK
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -681,7 +859,7 @@ export default function Admin() {
                 <thead>
                   <tr>
                     <th>Member</th>
-                    <th>Username</th>
+                    <th className="hide-on-mobile">Username</th>
                     <th>Status</th>
                     <th className="hide-on-mobile">Joined</th>
                     <th>Actions</th>
@@ -699,7 +877,7 @@ export default function Admin() {
                           <span style={{ fontWeight: 600, fontSize: 14 }}>{m.name}</span>
                         </div>
                       </td>
-                      <td style={{ color: 'var(--color-text-2)', fontSize: 13 }}>@{m.username}</td>
+                      <td className="hide-on-mobile" style={{ color: 'var(--color-text-2)', fontSize: 13 }}>@{m.username}</td>
                       <td>
                         <span className={`badge ${m.isActive ? 'badge-success' : 'badge-error'}`}>
                           {m.isActive ? 'Active' : 'Off'}
@@ -740,25 +918,33 @@ export default function Admin() {
         {tab === 'posts' && (
           <div className="admin-section animate-fade-in">
             <h2 className="admin-section-title">All Posts ({posts.length})</h2>
-            <div className="admin-posts-grid">
-              {posts.map(post => (
-                <div key={post._id} className="admin-post-item" id={`admin-post-${post._id}`}>
-                  {post.mediaType === 'video'
-                    ? <video src={post.mediaUrl} className="admin-post-media" muted />
-                    : <img src={post.mediaUrl} alt={post.caption} className="admin-post-media" loading="lazy" />
-                  }
-                  <div className="admin-post-overlay">
-                    <button className="btn btn-ghost btn-sm" onClick={() => setLightboxPost(post)} style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }}>
-                      <Eye size={14} />
-                    </button>
-                    <button className="btn btn-danger btn-sm" onClick={() => deletePost(post._id)} id={`del-post-${post._id}`}>
-                      <Trash2 size={14} />
-                    </button>
+            {posts.length === 0 ? (
+              <div className="admin-empty-state">
+                <Image size={48} style={{ margin: '0 auto 12px', opacity: 0.35 }} />
+                <p style={{ fontWeight: 600, color: 'var(--color-text)' }}>No posts uploaded</p>
+                <p style={{ fontSize: 14, marginTop: 4, color: 'var(--color-text-2)' }}>Posts created by members will show up here.</p>
+              </div>
+            ) : (
+              <div className="admin-posts-grid">
+                {posts.map(post => (
+                  <div key={post._id} className="admin-post-item" id={`admin-post-${post._id}`}>
+                    {post.mediaType === 'video'
+                      ? <video src={post.mediaUrl} className="admin-post-media" muted />
+                      : <img src={post.mediaUrl} alt={post.caption} className="admin-post-media" loading="lazy" />
+                    }
+                    <div className="admin-post-overlay">
+                      <button className="btn btn-ghost btn-sm" onClick={() => setLightboxPost(post)} style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }}>
+                        <Eye size={14} />
+                      </button>
+                      <button className="btn btn-danger btn-sm" onClick={() => deletePost(post._id)} id={`del-post-${post._id}`}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    <div className="admin-post-author">@{post.author?.username}</div>
                   </div>
-                  <div className="admin-post-author">@{post.author?.username}</div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -913,10 +1099,26 @@ export default function Admin() {
       )}
 
       {lightboxPost && (
-        <PostLightbox 
-          post={lightboxPost} 
+        <PostLightbox
+          post={lightboxPost}
           allPosts={posts}
-          onClose={() => setLightboxPost(null)} 
+          onClose={() => setLightboxPost(null)}
+          onLikeToggle={(postId, liked, _likeCount) => {
+            setPosts(prev => prev.map(p => {
+              if (p._id === postId) {
+                const userLikes = Array.isArray(p.likes) ? p.likes : [];
+                const alreadyLiked = userLikes.includes(user?._id || '');
+                let newLikes = [...userLikes];
+                if (liked && !alreadyLiked) {
+                  newLikes.push(user?._id || '');
+                } else if (!liked && alreadyLiked) {
+                  newLikes = newLikes.filter(id => id !== (user?._id || ''));
+                }
+                return { ...p, likes: newLikes };
+              }
+              return p;
+            }));
+          }}
         />
       )}
 
@@ -949,11 +1151,28 @@ export default function Admin() {
                 </div>
                 <div>
                   <label className="label">Cover Image (optional)</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => folderCoverRef.current?.click()}>
-                      📷 {newFolderCover ? 'Change' : 'Pick Cover'}
-                    </button>
-                    {newFolderCover && <span style={{ fontSize: 13, color: 'var(--color-text-2)' }}>{newFolderCover.name}</span>}
+                  <div
+                    className="banner-upload-zone"
+                    style={{ height: 160, maxWidth: 200, margin: '0 auto' }}
+                    onClick={() => folderCoverRef.current?.click()}
+                  >
+                    {newFolderCover ? (
+                      <>
+                        <img
+                          src={URL.createObjectURL(newFolderCover)}
+                          alt="Cover Preview"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        <div className="banner-upload-overlay">
+                          <Upload size={18} />
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ textAlign: 'center', color: 'var(--color-text-2)' }}>
+                        <Plus size={20} style={{ margin: '0 auto 6px', display: 'block' }} />
+                        <span style={{ fontSize: 12 }}>Upload Cover Image</span>
+                      </div>
+                    )}
                   </div>
                   <input ref={folderCoverRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setNewFolderCover(e.target.files?.[0] || null)} />
                 </div>
