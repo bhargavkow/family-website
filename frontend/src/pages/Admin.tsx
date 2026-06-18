@@ -63,6 +63,9 @@ function AddMemberModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.bio.length > 200) {
+      return toast.error('Bio cannot exceed 200 characters');
+    }
     setLoading(true);
     try {
       const fd = new FormData();
@@ -106,8 +109,8 @@ function AddMemberModal({ onClose, onCreated }: { onClose: () => void; onCreated
               { id: 'am-name', key: 'name', label: 'Full Name', placeholder: 'John Doe', req: true },
               { id: 'am-username', key: 'username', label: 'Username', placeholder: 'johndoe', req: true },
               { id: 'am-password', key: 'password', label: 'Password', placeholder: 'Min 6 chars', req: true, type: 'password' },
-              { id: 'am-bio', key: 'bio', label: 'Bio (optional)', placeholder: 'Tell us about them...', req: false },
-              { id: 'am-occupation', key: 'occupation', label: 'Occupation (optional)', placeholder: 'e.g. Farmer, Teacher...', req: false },
+              { id: 'am-bio', key: 'bio', label: 'Bio (optional)', placeholder: 'Tell us about them...', req: false, maxLength: 200 },
+              { id: 'am-occupation', key: 'occupation', label: 'Occupation (optional)', placeholder: 'e.g. Farmer, Teacher...', req: false, maxLength: 100 },
               { id: 'am-dob', key: 'dob', label: 'Date of Birth (optional)', placeholder: '', req: false, type: 'date' },
             ].map(f => (
               <div key={f.key}>
@@ -118,6 +121,7 @@ function AddMemberModal({ onClose, onCreated }: { onClose: () => void; onCreated
                   className="input"
                   placeholder={f.placeholder}
                   required={f.req}
+                  maxLength={f.maxLength}
                   value={form[f.key as keyof typeof form]}
                   onChange={e => setForm({ ...form, [f.key]: e.target.value })}
                 />
@@ -161,6 +165,9 @@ function EditMemberModal({ member, onClose, onSaved }: { member: User; onClose: 
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.bio.length > 200) {
+      return toast.error('Bio cannot exceed 200 characters');
+    }
     setLoading(true);
     try {
       const fd = new FormData();
@@ -204,8 +211,8 @@ function EditMemberModal({ member, onClose, onSaved }: { member: User; onClose: 
             {[
               { id: 'em-name', key: 'name', label: 'Full Name', req: true },
               { id: 'em-username', key: 'username', label: 'Username', req: true },
-              { id: 'em-bio', key: 'bio', label: 'Bio', req: false },
-              { id: 'em-occupation', key: 'occupation', label: 'Occupation', req: false, placeholder: 'e.g. Farmer, Teacher...' },
+              { id: 'em-bio', key: 'bio', label: 'Bio', req: false, maxLength: 200 },
+              { id: 'em-occupation', key: 'occupation', label: 'Occupation', req: false, placeholder: 'e.g. Farmer, Teacher...', maxLength: 100 },
               { id: 'em-dob', key: 'dob', label: 'Date of Birth', req: false, type: 'date' },
               { id: 'em-password', key: 'password', label: 'New Password (leave blank to keep)', req: false, type: 'password' },
             ].map(f => (
@@ -216,6 +223,8 @@ function EditMemberModal({ member, onClose, onSaved }: { member: User; onClose: 
                   type={f.type || 'text'}
                   className="input"
                   required={f.req}
+                  maxLength={f.maxLength}
+                  placeholder={f.placeholder}
                   value={form[f.key as keyof typeof form]}
                   onChange={e => setForm({ ...form, [f.key]: e.target.value })}
                 />

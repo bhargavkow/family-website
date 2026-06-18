@@ -1,7 +1,7 @@
 .messages-page {
   display: flex;
   height: calc(100vh - 70px);
-  background: var(--color-bg);
+  background: #000000 !important;
   overflow: hidden;
 }
 
@@ -11,7 +11,7 @@
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  background: var(--color-bg);
+  background: #000000 !important;
   z-index: 10;
 }
 
@@ -22,7 +22,7 @@
 .conv-title {
   font-size: 20px;
   font-weight: 800;
-  color: var(--color-text);
+  color: #c5a880;
 }
 
 .conv-search-wrap {
@@ -55,7 +55,9 @@
   scrollbar-width: none;
 }
 
-.conv-list::-webkit-scrollbar { display: none; }
+.conv-list::-webkit-scrollbar {
+  display: none;
+}
 
 .conv-item {
   display: flex;
@@ -122,13 +124,15 @@
 }
 
 .msg-initial {
-  background: var(--grad-primary);
-  color: white;
+  background: rgba(255, 255, 255, 0.05);
+  color: #c5a880;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
+  box-sizing: border-box;
 }
 
 /* ─── Chat Panel (desktop) ──────────────────────────── */
@@ -136,7 +140,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--color-bg);
+  background: #000000 !important;
   position: relative;
 }
 
@@ -166,7 +170,9 @@
 }
 
 /* ─── Chat Messages refinements ─────────────────────── */
-#chat-messages::-webkit-scrollbar { display: none; }
+#chat-messages::-webkit-scrollbar {
+  display: none;
+}
 
 .message-row-container {
   display: flex;
@@ -222,7 +228,7 @@
   line-height: 1.4;
   word-break: break-word;
   position: relative;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .bubble-mine {
@@ -261,13 +267,15 @@
 #chat-messages:hover .message-content-swipe {
   transform: translateX(-50px);
 }
+
 #chat-messages:hover .message-swipe-time {
   opacity: 1;
 }
 
 /* ─── Sidebar refinements ───────────────────────────── */
 .conv-preview-row {
-  height: 14px; /* Maintain height without text */
+  height: 14px;
+  /* Maintain height without text */
 }
 
 .search-drop {

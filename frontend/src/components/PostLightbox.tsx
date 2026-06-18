@@ -228,6 +228,36 @@ export default function PostLightbox({ post, allPosts, onClose, onDelete, onLike
   );
 }
 
+// ─── Confirm Delete Post Popup
+function ConfirmDeleteModal({ onConfirm, onCancel }: {
+  onConfirm: () => void; onCancel: () => void;
+}) {
+  return (
+    <div className="modal-overlay" onClick={onCancel} style={{ zIndex: 2000 }}>
+      <div className="modal animate-scale-in confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 320, textAlign: 'center', padding: 24 }}>
+        <p style={{ fontWeight: 600, fontSize: 18, marginBottom: 8, color: 'var(--color-text)' }}>Delete Post?</p>
+        <p style={{ color: 'var(--color-text-2)', fontSize: 14, marginBottom: 24, lineHeight: 1.4 }}>
+          Are you sure you want to delete this post? This action cannot be undone.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, borderTop: '1px solid var(--color-border)', margin: '0 -24px -24px' }}>
+          <button 
+            style={{ background: 'none', border: 'none', padding: '14px', color: 'var(--color-error)', fontWeight: 700, borderBottom: '1px solid var(--color-border)', cursor: 'pointer' }} 
+            onClick={onConfirm}
+          >
+            Delete
+          </button>
+          <button 
+            style={{ background: 'none', border: 'none', padding: '14px', color: 'var(--color-text)', cursor: 'pointer' }} 
+            onClick={onCancel}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PostItem({ post, currentUser, onDelete, onLikeToggle }: {
   post: Post;
   currentUser: any;
@@ -239,6 +269,7 @@ function PostItem({ post, currentUser, onDelete, onLikeToggle }: {
   const [likeCount, setLikeCount] = useState(post.likes.length);
   const [saved, setSaved] = useState(currentUser?.savedPosts?.includes(post._id) || false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -378,6 +409,12 @@ function PostItem({ post, currentUser, onDelete, onLikeToggle }: {
 
   return (
     <div className="feed-post" id={`feed-post-${post._id}`} style={{ opacity: deleting ? 0.4 : 1 }}>
+      {showConfirmDelete && (
+        <ConfirmDeleteModal
+          onConfirm={handleDelete}
+          onCancel={() => setShowConfirmDelete(false)}
+        />
+      )}
       {/* Header */}
       <div className="feed-post-header" style={{ position: 'relative' }}>
         {post.author?.profilePhoto?.url ? (
@@ -403,7 +440,13 @@ function PostItem({ post, currentUser, onDelete, onLikeToggle }: {
 
             {showMenu && (
               <div className="post-dot-menu">
-                <button className="post-dot-menu-item danger" onClick={handleDelete}>
+                <button 
+                  className="post-dot-menu-item danger" 
+                  onClick={() => {
+                    setShowMenu(false);
+                    setShowConfirmDelete(true);
+                  }}
+                >
                   <Trash2 size={18} />
                   Delete post
                 </button>

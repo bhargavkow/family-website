@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -19,6 +19,10 @@ const ProfileRedirect = lazy(() => import('./pages/ProfileRedirect'));
 
 function AppContent() {
   const { user, loading } = useAuth();
+  const location = useLocation();
+  
+  const match = location.pathname.match(/^\/members\/([^/]+)$/);
+  const isOtherMemberProfile = match ? match[1].toLowerCase() !== user?.username?.toLowerCase() : false;
 
   if (loading) {
     return (
@@ -94,7 +98,7 @@ function AppContent() {
         </Routes>
       </Suspense>
 
-      <BottomNavbar />
+      {!isOtherMemberProfile && <BottomNavbar />}
     </>
   );
 }

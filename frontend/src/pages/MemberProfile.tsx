@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { X, Play, Grid, Film, Settings, Search, ArrowLeft, Plus, Image, Video } from 'lucide-react';
+import { X, Play, Grid, Film, Settings, Search, ArrowLeft, Plus, Image, Video, Briefcase, Cake } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiGetMember, apiFollow, apiGetFollowers, apiGetFollowing, apiUpdateProfile, apiCreatePost, apiDeletePost, apiGetSavedPosts } from '../api';
 import type { User, Post } from '../types';
@@ -305,12 +305,10 @@ function SharePostSheet({ onFileSelected, onCancel }: {
             onTouchEnd={e => (e.currentTarget.style.background = 'var(--color-surface-2)')}
           >
             <div style={{
-              width: 52, height: 52, borderRadius: 16,
-              background: 'linear-gradient(135deg, #f97316, #f59e0b)',
+              width: 52, height: 52,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 6px 20px rgba(249,115,22,0.35)',
             }}>
-              <Image size={28} color="white" />
+              <Image size={32} color="#c5a880" />
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-text)' }}>Image Post</div>
@@ -334,12 +332,10 @@ function SharePostSheet({ onFileSelected, onCancel }: {
             onTouchEnd={e => (e.currentTarget.style.background = 'var(--color-surface-2)')}
           >
             <div style={{
-              width: 52, height: 52, borderRadius: 16,
-              background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
+              width: 52, height: 52,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 6px 20px rgba(139,92,246,0.35)',
             }}>
-              <Video size={28} color="white" />
+              <Video size={32} color="#c5a880" />
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-text)' }}>Video Post</div>
@@ -399,6 +395,9 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
   };
 
   const handleSave = async () => {
+    if (bio.length > 200) {
+      return toast.error('Bio cannot exceed 200 characters');
+    }
     setLoading(true);
     try {
       const fd = new FormData();
@@ -494,13 +493,18 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
               <input id="edit-username" className="input-minimal" value={username} onChange={e => setUsername(e.target.value.toLowerCase())} placeholder="Username" />
             </div>
             <div className="edit-field">
-              <label className="label" style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Bio</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <label className="label" style={{ fontSize: 12, fontWeight: 600, margin: 0 }}>Bio</label>
+                <span style={{ fontSize: 11, color: 'var(--color-text-2)' }}>
+                  {bio.length} / 200 characters
+                </span>
+              </div>
               <textarea
                 className="input-minimal"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows={2}
-                maxLength={300}
+                maxLength={200}
                 placeholder="Bio"
                 style={{ resize: 'none' }}
               />
@@ -1207,15 +1211,17 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
         <div className="profile-bio-container">
           <h1 className="profile-display-name">{profile.name}</h1>
           {(profile.occupation || profile.dob) && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', marginBottom: 4, marginTop: 2 }}>
+            <div className="profile-meta-details">
               {profile.occupation && (
-                <span style={{ fontSize: 13, color: 'var(--color-text-2)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  💼 {profile.occupation}
+                <span className="profile-meta-item">
+                  <Briefcase size={14} style={{ color: '#c5a880' }} />
+                  {profile.occupation}
                 </span>
               )}
               {profile.dob && (
-                <span style={{ fontSize: 13, color: 'var(--color-text-2)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  🎂 {new Date(profile.dob).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                <span className="profile-meta-item">
+                  <Cake size={14} style={{ color: '#c5a880' }} />
+                  {new Date(profile.dob).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </span>
               )}
             </div>
@@ -1374,7 +1380,13 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
       {lightboxIdx !== null && (
         <PostLightbox
           post={posts[lightboxIdx]}
-          allPosts={posts}
+          allPosts={
+            postTab === 'images'
+              ? posts.filter(p => p.mediaType === 'image')
+              : postTab === 'videos'
+              ? posts.filter(p => p.mediaType === 'video')
+              : posts
+          }
           onClose={() => setLightboxIdx(null)}
           onDelete={(postId) => {
             setPosts(prev => prev.filter(p => p._id !== postId));

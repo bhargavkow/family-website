@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Dancing+Script:wght@500;700&family=Fleur+De+Leah&family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;600;700&display=swap');
 
 /* ─────────────────────────────────────────────
    Design Tokens
@@ -32,7 +32,7 @@
   --grad-primary: linear-gradient(135deg, #7c5cfc, #fc5ca8);
   --grad-primary-h: linear-gradient(135deg, #9b7dfd, #fd7fbf);
   --grad-card: linear-gradient(135deg, #16161f, #1e1e2b);
-  --grad-hero: linear-gradient(180deg, rgba(10,10,15,0) 0%, rgba(10,10,15,0.8) 60%, #0a0a0f 100%);
+  --grad-hero: linear-gradient(180deg, rgba(10, 10, 15, 0) 0%, rgba(10, 10, 15, 0.8) 60%, #0a0a0f 100%);
 
   /* Spacing */
   --navbar-h: 64px;
@@ -42,9 +42,9 @@
   --radius-full: 9999px;
 
   /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
-  --shadow: 0 4px 20px rgba(0,0,0,0.5);
-  --shadow-lg: 0 8px 40px rgba(0,0,0,0.6);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.6);
   --shadow-primary: 0 4px 20px var(--color-primary-glow);
 
   /* Typography */
@@ -69,9 +69,9 @@ body.light-mode {
   --color-text-2: #8e8e8e;
   --color-text-3: #c7c7c7;
 
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.1);
-  --shadow: 0 4px 20px rgba(0,0,0,0.1);
-  --shadow-lg: 0 8px 40px rgba(0,0,0,0.15);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.15);
 }
 
 body.dark-mode {
@@ -91,7 +91,9 @@ body.dark-mode {
 /* ─────────────────────────────────────────────
    Global Reset
 ──────────────────────────────────────────────── */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -113,7 +115,8 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-img, video {
+img,
+video {
   max-width: 100%;
   display: block;
 }
@@ -130,74 +133,140 @@ button {
   outline: none;
 }
 
-input, textarea {
+input,
+textarea {
   font-family: inherit;
 }
 
 /* ─────────────────────────────────────────────
    Scrollbar
 ──────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--color-bg-2); }
-::-webkit-scrollbar-thumb { background: var(--color-border-light); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-primary); }
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-light);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
 
 /* ─────────────────────────────────────────────
    Animations
 ──────────────────────────────────────────────── */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 @keyframes countUp {
-  from { transform: translateY(10px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.animate-fade-in { animation: fadeIn 0.4s ease both; }
-.animate-slide-up { animation: slideUp 0.4s ease both; }
-.animate-scale-in { animation: scaleIn 0.3s ease both; }
+.animate-fade-in {
+  animation: fadeIn 0.4s ease both;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease both;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease both;
+}
 
 /* ─────────────────────────────────────────────
    Skeleton Loading
 ──────────────────────────────────────────────── */
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--color-surface) 25%,
-    var(--color-surface-2) 50%,
-    var(--color-surface) 75%
-  );
+  background: linear-gradient(90deg,
+      var(--color-surface) 25%,
+      var(--color-surface-2) 50%,
+      var(--color-surface) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius-sm);
@@ -223,6 +292,7 @@ input, textarea {
   color: #fff;
   box-shadow: var(--shadow-primary);
 }
+
 .btn-primary:hover {
   background: var(--grad-primary-h);
   transform: translateY(-1px);
@@ -234,6 +304,7 @@ input, textarea {
   border: 1.5px solid var(--color-border-light);
   color: var(--color-text);
 }
+
 .btn-outline:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
@@ -245,6 +316,7 @@ input, textarea {
   color: var(--color-text);
   border: 1.5px solid var(--color-border);
 }
+
 .btn-ghost:hover {
   background: var(--color-surface-2);
 }
@@ -254,13 +326,26 @@ input, textarea {
   color: var(--color-error);
   border: 1.5px solid rgba(252, 92, 92, 0.3);
 }
+
 .btn-danger:hover {
   background: rgba(252, 92, 92, 0.25);
 }
 
-.btn-sm { padding: 6px 14px; font-size: 13px; }
-.btn-lg { padding: 14px 28px; font-size: 16px; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.btn-lg {
+  padding: 14px 28px;
+  font-size: 16px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
 
 /* ─────────────────────────────────────────────
    Card
@@ -276,7 +361,7 @@ input, textarea {
   background: rgba(22, 22, 31, 0.7);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-lg);
 }
 
@@ -293,12 +378,16 @@ input, textarea {
   font-size: 14px;
   transition: border-color var(--transition);
 }
+
 .input:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-glow);
 }
-.input::placeholder { color: var(--color-text-2); }
+
+.input::placeholder {
+  color: var(--color-text-2);
+}
 
 .label {
   display: block;
@@ -314,7 +403,7 @@ input, textarea {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.75);
+  background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
@@ -343,7 +432,9 @@ input, textarea {
   border-bottom: 1px solid var(--color-border);
 }
 
-.modal-body { padding: 24px; }
+.modal-body {
+  padding: 24px;
+}
 
 /* ─────────────────────────────────────────────
    Avatar
@@ -362,7 +453,10 @@ input, textarea {
   border-radius: 50%;
   border: 2px solid var(--color-bg);
 }
-.avatar-ring img { border: 2px solid var(--color-bg); }
+
+.avatar-ring img {
+  border: 2px solid var(--color-bg);
+}
 
 /* ─────────────────────────────────────────────
    Divider
@@ -419,6 +513,7 @@ input, textarea {
   padding: 60px 20px;
   color: var(--color-text-2);
 }
+
 .empty-state svg {
   margin: 0 auto 16px;
   opacity: 0.4;
@@ -447,10 +542,25 @@ input, textarea {
   letter-spacing: 0.5px;
 }
 
-.badge-primary { background: var(--color-primary-glow); color: var(--color-primary-light); }
-.badge-success { background: rgba(34,211,165,0.15); color: var(--color-success); }
-.badge-error { background: rgba(252,92,92,0.15); color: var(--color-error); }
-.badge-warning { background: rgba(252,183,92,0.15); color: var(--color-warning); }
+.badge-primary {
+  background: var(--color-primary-glow);
+  color: var(--color-primary-light);
+}
+
+.badge-success {
+  background: rgba(34, 211, 165, 0.15);
+  color: var(--color-success);
+}
+
+.badge-error {
+  background: rgba(252, 92, 92, 0.15);
+  color: var(--color-error);
+}
+
+.badge-warning {
+  background: rgba(252, 183, 92, 0.15);
+  color: var(--color-warning);
+}
 
 /* ─────────────────────────────────────────────
    Grid Layouts
@@ -468,11 +578,15 @@ input, textarea {
 }
 
 @media (min-width: 640px) {
-  .member-grid { grid-template-columns: repeat(4, 1fr); }
+  .member-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 @media (min-width: 1024px) {
-  .member-grid { grid-template-columns: repeat(5, 1fr); }
+  .member-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
 }
 
 /* ─────────────────────────────────────────────
@@ -500,13 +614,36 @@ input, textarea {
    Input — touch-friendly on mobile
 ──────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  .input { font-size: 16px; } /* prevents iOS zoom on focus */
-  .btn { padding: 10px 16px; }
-  .btn-lg { padding: 13px 22px; font-size: 15px; }
-  .modal { border-radius: var(--radius) var(--radius) 0 0; }
-  .modal-overlay { align-items: flex-end; padding: 0; }
-  .modal-body { padding: 20px 16px; }
-  .modal-header { padding: 16px; }
+  .input {
+    font-size: 16px;
+  }
+
+  /* prevents iOS zoom on focus */
+  .btn {
+    padding: 10px 16px;
+  }
+
+  .btn-lg {
+    padding: 13px 22px;
+    font-size: 15px;
+  }
+
+  .modal {
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-body {
+    padding: 20px 16px;
+  }
+
+  .modal-header {
+    padding: 16px;
+  }
 }
 
 /* ─────────────────────────────────────────────
@@ -519,7 +656,9 @@ input, textarea {
 }
 
 @media (min-width: 480px) {
-  .post-grid { grid-template-columns: repeat(3, 1fr); }
+  .post-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .member-grid {
@@ -529,21 +668,40 @@ input, textarea {
 }
 
 @media (min-width: 480px) {
-  .member-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .member-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
 }
 
 @media (min-width: 640px) {
-  .member-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .member-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
 }
 
 @media (min-width: 1024px) {
-  .member-grid { grid-template-columns: repeat(5, 1fr); }
+  .member-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
 }
 
 /* ─────────────────────────────────────────────
    Container — safe side padding on mobile
 ──────────────────────────────────────────────── */
-.container { padding: 0 12px; }
+.container {
+  padding: 0 12px;
+}
 
-@media (min-width: 480px) { .container { padding: 0 16px; } }
-@media (min-width: 768px) { .container { padding: 0 24px; } }
+@media (min-width: 480px) {
+  .container {
+    padding: 0 16px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: 0 24px;
+  }
+}

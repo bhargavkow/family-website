@@ -29,7 +29,7 @@
 /* ─── Member Tile ────────────────────────────────────── */
 .member-tile {
   cursor: pointer;
-  border-radius: var(--radius);
+  border-radius: 0;
   overflow: hidden;
   transition: transform var(--transition);
 }
@@ -39,7 +39,7 @@
 .member-tile-photo {
   position: relative;
   aspect-ratio: 1;
-  border-radius: var(--radius);
+  border-radius: 0;
   overflow: hidden;
   background: var(--color-surface-2);
 }

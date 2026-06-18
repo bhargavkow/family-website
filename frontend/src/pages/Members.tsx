@@ -67,60 +67,60 @@ export default function Members() {
   const topUpcoming = todayBirthdays.length > 0 ? todayBirthdays : sortedMembers.slice(0, 3);
 
   if (loading) return (
-    <div className="page members-page" style={{ background: 'var(--color-bg)', minHeight: '100vh' }}>
-      <div className="members-header" style={{ padding: '16px 20px 20px' }}>
-        <div className="skeleton" style={{ width: 120, height: 32, borderRadius: 8, marginBottom: 8 }} />
-        <div className="skeleton" style={{ width: 180, height: 16, borderRadius: 4 }} />
+    <div className="page members-page" style={{ background: '#000000', minHeight: '100vh' }}>
+      <div className="members-header" style={{ padding: '24px 20px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <div className="skeleton" style={{ width: 120, height: 32, borderRadius: 0, marginBottom: 8 }} />
+        <div className="skeleton" style={{ width: 180, height: 16, borderRadius: 0 }} />
       </div>
       <div style={{ padding: '0 0 24px' }}>
         <div className="skeleton" style={{ height: 120, borderRadius: 0 }} />
       </div>
       <div style={{ padding: '0 20px' }}>
         <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-          <div className="skeleton" style={{ width: 44, height: 44, borderRadius: 14 }} />
+          <div className="skeleton" style={{ width: 44, height: 44, borderRadius: 0 }} />
           <div>
-            <div className="skeleton" style={{ width: 100, height: 20, borderRadius: 4, marginBottom: 6 }} />
-            <div className="skeleton" style={{ width: 140, height: 14, borderRadius: 4 }} />
+            <div className="skeleton" style={{ width: 100, height: 20, borderRadius: 0, marginBottom: 6 }} />
+            <div className="skeleton" style={{ width: 140, height: 14, borderRadius: 0 }} />
           </div>
         </div>
-        <div className="skeleton" style={{ height: 180, borderRadius: 24, marginBottom: 16 }} />
-        <div className="skeleton" style={{ height: 80, borderRadius: 24, marginBottom: 16 }} />
+        <div className="skeleton" style={{ height: 180, borderRadius: 0, marginBottom: 16 }} />
+        <div className="skeleton" style={{ height: 80, borderRadius: 0, marginBottom: 16 }} />
       </div>
     </div>
   );
 
   return (
-    <div className="page members-page" style={{ background: 'var(--color-bg)', minHeight: '100vh' }}>
-      <div className="members-header" style={{ padding: '16px 20px 20px' }}>
-        <h1 style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-1.5px', marginBottom: 2, color: 'var(--color-text)' }}>Update</h1>
-        <p style={{ color: 'var(--color-text-2)', fontSize: 14, fontWeight: 500 }}>Stay connected with our family</p>
+    <div className="page members-page" style={{ background: '#000000', minHeight: '100vh' }}>
+      <div className="members-header" style={{ padding: '24px 20px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: 6, color: '#c5a880' }}>Update</h1>
+        <p style={{ color: '#a8a8c0', fontSize: 13, fontWeight: 500 }}>Stay connected with our family</p>
       </div>
 
       {/* ── Daily Thought Section ── */}
       <section style={{ padding: '0 0 24px' }}>
         <div style={{
-          background: 'var(--color-surface)',
+          background: 'rgba(255, 255, 255, 0.03)',
           padding: '24px 20px',
-          borderTop: '1px solid var(--color-border)',
-          borderBottom: '1px solid var(--color-border)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
           boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
           position: 'relative',
           overflow: 'hidden'
         }}>
-          <div style={{ position: 'absolute', top: -15, right: -15, opacity: 0.03, color: 'var(--color-primary)' }}>
+          <div style={{ position: 'absolute', top: -15, right: -15, opacity: 0.03, color: '#c5a880' }}>
             <Quote size={100} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <div style={{ width: 24, height: 24, borderRadius: 8, background: 'rgba(124, 92, 252, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
+            <div style={{ width: 24, height: 24, borderRadius: 0, background: 'rgba(197, 168, 128, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c5a880' }}>
               <Quote size={12} fill="currentColor" />
             </div>
-            <span style={{ fontWeight: 800, fontSize: 11, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--color-primary)' }}>Thought of the Day</span>
+            <span style={{ fontWeight: 800, fontSize: 11, textTransform: 'uppercase', letterSpacing: '1px', color: '#c5a880' }}>Thought of the Day</span>
           </div>
           <p style={{
             fontSize: 16,
             fontWeight: 700,
             lineHeight: 1.5,
-            color: 'var(--color-text)',
+            color: '#ffffff',
             position: 'relative',
             zIndex: 1,
             fontStyle: 'italic'
@@ -137,33 +137,33 @@ export default function Members() {
             <div style={{
               width: 44,
               height: 44,
-              background: 'linear-gradient(135deg, #7c5cfc, #a855f7)',
-              borderRadius: 8,
+              background: '#c5a880',
+              borderRadius: 0,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'white',
-              boxShadow: '0 8px 16px rgba(124, 92, 252, 0.3)'
+              color: '#000000',
+              boxShadow: '0 8px 16px rgba(197, 168, 128, 0.25)'
             }}>
               <Cake size={24} className="animate-pulse" />
             </div>
             <div>
-              <h2 style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.5px', color: 'var(--color-text)' }}>Birthdays</h2>
-              <p style={{ fontSize: 12, color: 'var(--color-text-2)', fontWeight: 600 }}>Celebrate our loved ones</p>
+              <h2 style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.5px', color: '#ffffff' }}>Birthdays</h2>
+              <p style={{ fontSize: 12, color: '#a8a8c0', fontWeight: 600 }}>Celebrate our loved ones</p>
             </div>
           </div>
           <button
             onClick={() => setShowAllBirthdays(!showAllBirthdays)}
             style={{
-              background: 'var(--color-surface-2)',
+              background: 'rgba(255, 255, 255, 0.05)',
               border: 'none',
               width: 40,
               height: 40,
-              borderRadius: 8,
+              borderRadius: 0,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'var(--color-text)',
+              color: '#ffffff',
               cursor: 'pointer',
               transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
               transform: showAllBirthdays ? 'rotate(180deg)' : 'rotate(0deg)'
@@ -175,8 +175,8 @@ export default function Members() {
 
         {!showAllBirthdays && (
           sortedMembers.length === 0 ? (
-            <div className="glass-card" style={{ padding: '32px 20px', textAlign: 'center', borderRadius: 28, color: 'var(--color-text-2)', border: '2px dashed var(--color-border)', background: 'rgba(0,0,0,0.02)' }}>
-              <Sparkles size={32} style={{ marginBottom: 12, opacity: 0.3, color: 'var(--color-primary)' }} />
+            <div className="glass-card" style={{ padding: '32px 20px', textAlign: 'center', borderRadius: 0, color: '#a8a8c0', border: '2px dashed rgba(255, 255, 255, 0.1)', background: 'rgba(255, 255, 255, 0.02)' }}>
+              <Sparkles size={32} style={{ marginBottom: 12, opacity: 0.3, color: '#c5a880' }} />
               <p style={{ fontWeight: 600 }}>No upcoming celebrations yet!</p>
               <p style={{ fontSize: 12, marginTop: 4 }}>Add birthdays to family profiles to see them here.</p>
             </div>
@@ -211,7 +211,7 @@ export default function Members() {
                       alignItems: 'center',
                       gap: 16,
                       padding: isToday ? '20px' : '16px',
-                      borderRadius: 8,
+                      borderRadius: 0,
                       cursor: 'pointer',
                       position: 'relative',
                       overflow: 'hidden',
@@ -232,9 +232,9 @@ export default function Members() {
                     <div style={{ position: 'relative', flexShrink: 0 }}>
                       <div className={isToday ? "avatar-ring-animated" : ""}>
                         {m.profilePhoto?.url ? (
-                          <img src={m.profilePhoto.url} alt={m.name} style={{ width: isToday ? 72 : 56, height: isToday ? 72 : 56, borderRadius: '50%', objectFit: 'cover', border: isToday ? '3px solid white' : '2px solid var(--color-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                          <img src={m.profilePhoto.url} alt={m.name} style={{ width: isToday ? 72 : 56, height: isToday ? 72 : 56, borderRadius: '50%', objectFit: 'cover', border: isToday ? '3px solid #000000' : '2px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                         ) : (
-                          <div style={{ width: isToday ? 72 : 56, height: isToday ? 72 : 56, borderRadius: '50%', background: isToday ? 'white' : 'var(--color-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: isToday ? 24 : 18, color: isToday ? 'var(--color-primary)' : 'var(--color-text)' }}>
+                          <div style={{ width: isToday ? 72 : 56, height: isToday ? 72 : 56, borderRadius: '50%', background: isToday ? '#000000' : 'rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: isToday ? 24 : 18, color: isToday ? '#ffffff' : '#ffffff' }}>
                             {m.name?.[0]?.toUpperCase()}
                           </div>
                         )}
@@ -253,16 +253,16 @@ export default function Members() {
                       <div style={{
                         fontWeight: 900,
                         fontSize: isToday ? 20 : 16,
-                        color: isToday ? 'white' : 'var(--color-text)',
+                        color: isToday ? '#000000' : '#ffffff',
                         letterSpacing: '-0.3px',
-                        textShadow: isToday ? '0 2px 4px rgba(0,0,0,0.2)' : 'none'
+                        textShadow: 'none'
                       }}>
                         {m.name}
                       </div>
                       <div style={{
                         fontSize: isToday ? 14 : 13,
                         fontWeight: 700,
-                        color: isToday ? 'rgba(255,255,255,0.9)' : 'var(--color-primary)',
+                        color: isToday ? 'rgba(0,0,0,0.6)' : '#ffffff',
                         marginTop: 4,
                         display: 'flex',
                         alignItems: 'center',
@@ -296,15 +296,15 @@ export default function Members() {
         {/* All Birthdays List (Expanded View) */}
         {showAllBirthdays && (
           <div className="birthday-list-expanded" style={{
-            background: 'var(--color-surface)',
-            borderRadius: 32,
-            border: '1px solid var(--color-border)',
+            background: '#0a0a0f',
+            borderRadius: 0,
+            border: '1px solid rgba(255, 255, 255, 0.1)',
             overflow: 'hidden',
             boxShadow: '0 24px 48px rgba(0,0,0,0.1)',
             animation: 'slideDownFade 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
           }}>
-            <div style={{ padding: '20px 20px 10px', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface-2)' }}>
-              <p style={{ fontWeight: 800, fontSize: 13, textTransform: 'uppercase', color: 'var(--color-text-2)', letterSpacing: '1px' }}>Full Birthday Calendar</p>
+            <div style={{ padding: '20px 20px 10px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', background: 'rgba(255, 255, 255, 0.03)' }}>
+              <p style={{ fontWeight: 800, fontSize: 13, textTransform: 'uppercase', color: '#a8a8c0', letterSpacing: '1px' }}>Full Birthday Calendar</p>
             </div>
             {sortedMembers.map((m, idx) => {
               const dob = new Date(m.dob!);
@@ -318,30 +318,30 @@ export default function Members() {
                     alignItems: 'center',
                     padding: '14px 20px',
                     gap: 14,
-                    borderBottom: idx === sortedMembers.length - 1 ? 'none' : '1px solid var(--color-border-light)',
-                    background: isToday ? 'rgba(124, 92, 252, 0.05)' : 'none',
+                    borderBottom: idx === sortedMembers.length - 1 ? 'none' : '1px solid rgba(255, 255, 255, 0.05)',
+                    background: isToday ? 'rgba(197, 168, 128, 0.08)' : 'none',
                     cursor: 'pointer'
                   }}
                 >
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-border)' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', border: '2px solid rgba(255, 255, 255, 0.1)' }}>
                     {m.profilePhoto?.url ? (
                       <img src={m.profilePhoto.url} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
-                      <div style={{ width: '100%', height: '100%', background: 'var(--color-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16 }}>
+                      <div style={{ width: '100%', height: '100%', background: 'rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, color: '#c5a880' }}>
                         {m.name?.[0]?.toUpperCase()}
                       </div>
                     )}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: isToday ? 'var(--color-primary)' : 'var(--color-text)' }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: isToday ? '#c5a880' : '#ffffff' }}>
                       {m.name}
                       {isToday && <span className="today-badge">TODAY</span>}
                     </div>
-                    <div style={{ fontSize: 13, color: 'var(--color-text-2)', fontWeight: 500 }}>
+                    <div style={{ fontSize: 13, color: '#a8a8c0', fontWeight: 500 }}>
                       {dob.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
                     </div>
                   </div>
-                  <div style={{ color: 'var(--color-text-3)' }}>
+                  <div style={{ color: '#a8a8c0' }}>
                     <ChevronRight size={18} strokeWidth={2.5} />
                   </div>
                 </div>
@@ -354,15 +354,15 @@ export default function Members() {
       {/* ── Upcoming Events Section ── */}
       <section style={{ padding: '0 20px 100px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(124, 92, 252, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 0, background: 'rgba(197, 168, 128, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c5a880' }}>
             <Calendar size={16} strokeWidth={2.5} />
           </div>
-          <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-text)' }}>Upcoming Events</h3>
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: '#ffffff' }}>Upcoming Events</h3>
         </div>
 
         {events.length === 0 ? (
-          <div className="glass-card" style={{ padding: '32px 20px', textAlign: 'center', borderRadius: 28, color: 'var(--color-text-2)', border: '2px dashed var(--color-border)', background: 'rgba(0,0,0,0.02)' }}>
-            <Sparkles size={32} style={{ marginBottom: 12, opacity: 0.3, color: 'var(--color-primary)' }} />
+          <div className="glass-card" style={{ padding: '32px 20px', textAlign: 'center', borderRadius: 0, color: '#a8a8c0', border: '2px dashed rgba(255, 255, 255, 0.1)', background: 'rgba(255, 255, 255, 0.02)' }}>
+            <Sparkles size={32} style={{ marginBottom: 12, opacity: 0.3, color: '#c5a880' }} />
             <p style={{ fontWeight: 600 }}>No major events planned yet</p>
             <p style={{ fontSize: 12, marginTop: 4 }}>Check back later for family gatherings!</p>
           </div>
@@ -370,10 +370,10 @@ export default function Members() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {events.map((ev) => (
               <div key={ev._id} className="event-card" style={{
-                background: 'var(--color-surface)',
-                borderRadius: 8,
+                background: '#0a0a0f',
+                borderRadius: 0,
                 overflow: 'hidden',
-                border: '1px solid var(--color-border)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
                 boxShadow: '0 8px 24px rgba(0,0,0,0.05)',
                 display: 'flex',
                 flexDirection: 'column'
@@ -386,14 +386,14 @@ export default function Members() {
                 <div style={{ padding: '16px 20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                     <div style={{ flex: 1 }}>
-                      <h4 style={{ fontWeight: 800, fontSize: 17, color: 'var(--color-text)', marginBottom: 2 }}>{ev.name}</h4>
-                      <p style={{ fontSize: 13, color: 'var(--color-text-2)', lineHeight: 1.4 }}>{ev.description}</p>
+                      <h4 style={{ fontWeight: 800, fontSize: 17, color: '#ffffff', marginBottom: 2 }}>{ev.name}</h4>
+                      <p style={{ fontSize: 13, color: '#a8a8c0', lineHeight: 1.4 }}>{ev.description}</p>
                     </div>
                     <div style={{
                       padding: '6px 10px',
-                      borderRadius: 12,
-                      background: 'rgba(124, 92, 252, 0.1)',
-                      color: 'var(--color-primary)',
+                      borderRadius: 0,
+                      background: 'rgba(197, 168, 128, 0.1)',
+                      color: '#c5a880',
                       textAlign: 'center',
                       minWidth: 50
                     }}>
@@ -422,9 +422,9 @@ export default function Members() {
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
         @keyframes pulse-glow {
-          0% { box-shadow: 0 0 0 0 rgba(124, 92, 252, 0.4); }
-          70% { box-shadow: 0 0 0 15px rgba(124, 92, 252, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(124, 92, 252, 0); }
+          0% { box-shadow: 0 0 0 0 rgba(197, 168, 128, 0.4); }
+          70% { box-shadow: 0 0 0 15px rgba(197, 168, 128, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(197, 168, 128, 0); }
         }
         @keyframes float {
           0% { transform: translateY(0px) rotate(0deg); }
@@ -433,15 +433,9 @@ export default function Members() {
         }
 
         .birthday-card-today {
-          background: linear-gradient(135deg, var(--color-primary), #a855f7, #ec4899);
-          background-size: 200% 200%;
-          animation: pulse-glow 2s infinite, gradient-move 5s ease infinite;
-          box-shadow: 0 15px 35px rgba(124, 92, 252, 0.35), inset 0 0 20px rgba(255,255,255,0.2);
-        }
-        @keyframes gradient-move {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+          background: #ffffff;
+          animation: pulse-glow 2s infinite;
+          box-shadow: 0 15px 35px rgba(255, 255, 255, 0.08);
         }
         .birthday-shine {
           position: absolute;
@@ -449,7 +443,7 @@ export default function Members() {
           left: -100%;
           width: 50%;
           height: 100%;
-          background: linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent);
+          background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.05), transparent);
           transform: skewX(-25deg);
           animation: shine 3s infinite;
         }
@@ -466,8 +460,8 @@ export default function Members() {
           opacity: 0.6;
         }
         .p1 { background: #FFD700; top: 10%; left: 20%; animation: particle-float 3s infinite; }
-        .p2 { background: #fff; top: 60%; left: 80%; animation: particle-float 4s infinite reverse; }
-        .p3 { background: #00f2fe; top: 40%; left: 10%; animation: particle-float 5s infinite 1s; }
+        .p2 { background: #c5a880; top: 60%; left: 80%; animation: particle-float 4s infinite reverse; }
+        .p3 { background: #e2cbab; top: 40%; left: 10%; animation: particle-float 5s infinite 1s; }
         @keyframes particle-float {
           0% { transform: translateY(0) rotate(0); }
           50% { transform: translateY(-20px) rotate(180deg); }
@@ -482,9 +476,9 @@ export default function Members() {
         }
         .wish-btn {
           padding: 8px 16px;
-          background: white;
-          color: var(--color-primary);
-          border-radius: 12px;
+          background: #000000;
+          color: #ffffff;
+          border-radius: 0px;
           font-weight: 800;
           font-size: 12px;
           box-shadow: 0 4px 10px rgba(0,0,0,0.1);
@@ -495,26 +489,26 @@ export default function Members() {
           50% { transform: translateY(-3px); }
         }
         .birthday-card-upcoming {
-          background: var(--color-surface);
-          border: 1px solid var(--color-border);
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.156);
           box-shadow: 0 4px 12px rgba(0,0,0,0.03);
           transition: transform 0.2s, box-shadow 0.2s;
         }
         .birthday-card-upcoming:active {
           transform: scale(0.98);
-          background: var(--color-surface-2);
+          background: rgba(255, 255, 255, 0.05);
         }
         
         .birthday-glow {
           position: absolute;
           inset: 0;
-          background: radial-gradient(circle at top right, rgba(255,255,255,0.3), transparent);
+          background: radial-gradient(circle at top right, rgba(255,255,255,0.05), transparent);
           pointer-events: none;
         }
 
         .avatar-ring-animated {
           padding: 3px;
-          background: linear-gradient(45deg, rgba(255,255,255,0.8), rgba(255,255,255,0.3));
+          background: #ffffff;
           border-radius: 50%;
         }
         
@@ -529,15 +523,13 @@ export default function Members() {
         .today-badge {
           margin-left: 10px;
           font-size: 10px;
-          background: var(--color-primary);
+          background: #c5a880;
           color: white;
           padding: 2px 8px;
-          borderRadius: 8px;
+          border-radius: 0px;
           font-weight: 900;
           letter-spacing: 0.5px;
         }
-
-
       `}</style>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search as SearchIcon, X, Play, FolderOpen, ArrowLeft } from 'lucide-react';
+import { Search as SearchIcon, X, Play, FolderOpen, ArrowLeft, Camera, Download } from 'lucide-react';
 import { apiSearchMembers, apiGetFeed, apiGetMoments, apiGetMembers } from '../api';
 import type { Moment } from '../api';
 import type { User, Post } from '../types';
@@ -18,6 +18,23 @@ function useDebounce<T>(value: T, delay: number) {
   return debounced;
 }
 
+const downloadImage = async (url: string, filename: string) => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    window.open(url, '_blank');
+  }
+};
+
 // ─── Moment Image Viewer ──────────────────────────────────
 function MomentViewer({ moment, onClose }: { moment: Moment; onClose: () => void }) {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
@@ -28,6 +45,18 @@ function MomentViewer({ moment, onClose }: { moment: Moment; onClose: () => void
   }, []);
 
   const images = moment.images;
+
+  const downloadAll = async () => {
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i];
+      const isCover = moment.coverImage?.url && (img.url === moment.coverImage.url || img.url.split('?')[0] === moment.coverImage.url.split('?')[0]);
+      if (isCover) {
+        continue;
+      }
+      downloadImage(img.url, `${moment.name.replace(/\s+/g, '_')}_${i + 1}.jpg`);
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+  };
 
   return (
     <div style={{
@@ -64,7 +93,7 @@ function MomentViewer({ moment, onClose }: { moment: Moment; onClose: () => void
           <button
             onClick={onClose}
             style={{
-              position: 'absolute', top: 14, left: 14,
+              position: 'absolute', top: 'calc(14px + env(safe-area-inset-top, 0px))', left: 14,
               width: 36, height: 36, borderRadius: '50%',
               background: 'rgba(0,0,0,0.45)',
               backdropFilter: 'blur(10px)',
@@ -80,19 +109,50 @@ function MomentViewer({ moment, onClose }: { moment: Moment; onClose: () => void
           <div style={{
             position: 'absolute', bottom: 0, left: 0, right: 0,
             padding: '12px 16px 16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)',
           }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>
-              {moment.name}
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>
+                {moment.name}
+              </div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 4, fontWeight: 500 }}>
+                {images.length} photo{images.length !== 1 ? 's' : ''}
+              </div>
             </div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 4, fontWeight: 500 }}>
-              {images.length} photo{images.length !== 1 ? 's' : ''}
-            </div>
+            {images.length > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  downloadAll();
+                }}
+                style={{
+                  background: '#c5a880',
+                  color: '#000000',
+                  border: 'none',
+                  borderRadius: 20,
+                  padding: '6px 14px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 12px rgba(197, 168, 128, 0.25)',
+                }}
+              >
+                <Download size={14} strokeWidth={2.5} />
+                Download All
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Photo grid */}
-      <div style={{ flex: 1, padding: 2, paddingBottom: 40 }}>
+      <div style={{ flex: 1, padding: '16px 2px 40px' }}>
         {images.length === 0 ? (
           <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-2)' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
@@ -117,6 +177,31 @@ function MomentViewer({ moment, onClose }: { moment: Moment; onClose: () => void
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   loading="lazy"
                 />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    downloadImage(img.url, `${moment.name.replace(/\s+/g, '_')}_${i + 1}.jpg`);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    bottom: 6,
+                    right: 6,
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    background: 'rgba(0, 0, 0, 0.65)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: '#c5a880',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    zIndex: 10,
+                  }}
+                  title="Download photo"
+                >
+                  <Download size={14} strokeWidth={2.5} />
+                </button>
               </div>
             ))}
           </div>
@@ -174,6 +259,24 @@ function MomentViewer({ moment, onClose }: { moment: Moment; onClose: () => void
           }}>
             {lightboxIdx + 1} / {images.length}
           </div>
+          {/* Download */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const img = images[lightboxIdx];
+              downloadImage(img.url, `${moment.name.replace(/\s+/g, '_')}_${lightboxIdx + 1}.jpg`);
+            }}
+            style={{
+              position: 'absolute', top: 14, right: 60,
+              background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(6px)',
+              border: 'none', borderRadius: '50%',
+              width: 36, height: 36, color: '#c5a880', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+            title="Download photo"
+          >
+            <Download size={18} strokeWidth={2.5} />
+          </button>
           {/* Close */}
           <button
             onClick={() => setLightboxIdx(null)}
@@ -226,8 +329,10 @@ function SpecialMomentsSection() {
         width: 72, height: 72, borderRadius: 24,
         background: 'var(--color-surface-2)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 36,
-      }}>📷</div>
+        color: '#c5a880',
+      }}>
+        <Camera size={36} strokeWidth={1.8} />
+      </div>
       <p style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text)', margin: 0 }}>No Albums Yet</p>
       <p style={{ fontSize: 14, color: 'var(--color-text-2)', margin: 0, textAlign: 'center' }}>
         Special moments will appear here once the admin adds them.
@@ -259,7 +364,6 @@ function SpecialMomentsSection() {
                 onClick={() => setOpenMoment(m)}
                 style={{
                   gridColumn: isFirst ? '1 / -1' : undefined,
-                  borderRadius: 18,
                   overflow: 'hidden',
                   cursor: 'pointer',
                   position: 'relative',
@@ -319,11 +423,15 @@ function SpecialMomentsSection() {
                   background: 'rgba(0,0,0,0.55)',
                   backdropFilter: 'blur(8px)',
                   borderRadius: 20,
-                  padding: '3px 10px',
+                  padding: '4px 10px',
                   fontSize: 11, fontWeight: 700, color: '#fff',
                   letterSpacing: 0.3,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
                 }}>
-                  {m.images.length} 📷
+                  <span>{m.images.length}</span>
+                  <Camera size={12} strokeWidth={2.2} style={{ color: '#c5a880' }} />
                 </div>
 
                 {/* Name + count */}
@@ -493,15 +601,15 @@ export default function Search() {
                 alignItems: 'center', justifyContent: 'center',
                 gap: 3, padding: '10px 0',
                 background: 'none', border: 'none', cursor: 'pointer',
-                borderBottom: exploreTab === 'posts' ? '2px solid var(--color-text)' : '2px solid transparent',
+                borderBottom: exploreTab === 'posts' ? '2px solid #c5a880' : '2px solid transparent',
                 marginBottom: -1,
               }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill={exploreTab === 'posts' ? 'var(--color-text)' : 'none'} stroke={exploreTab === 'posts' ? 'var(--color-text)' : 'var(--color-text-2)'} strokeWidth="1.8">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill={exploreTab === 'posts' ? '#c5a880' : 'none'} stroke={exploreTab === 'posts' ? '#c5a880' : 'var(--color-text-2)'} strokeWidth="1.8">
                 <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
                 <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
               </svg>
-              <span style={{ fontSize: 9, fontWeight: 600, color: exploreTab === 'posts' ? 'var(--color-text)' : 'var(--color-text-2)', letterSpacing: 0.3 }}>POSTS</span>
+              <span style={{ fontSize: 9, fontWeight: 600, color: exploreTab === 'posts' ? '#c5a880' : 'var(--color-text-2)', letterSpacing: 0.3 }}>POSTS</span>
             </button>
 
             {/* Moments */}
@@ -512,15 +620,15 @@ export default function Search() {
                 alignItems: 'center', justifyContent: 'center',
                 gap: 3, padding: '10px 0',
                 background: 'none', border: 'none', cursor: 'pointer',
-                borderBottom: exploreTab === 'moments' ? '2px solid var(--color-text)' : '2px solid transparent',
+                borderBottom: exploreTab === 'moments' ? '2px solid #c5a880' : '2px solid transparent',
                 marginBottom: -1,
               }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={exploreTab === 'moments' ? 'var(--color-text)' : 'var(--color-text-2)'} strokeWidth="1.8">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={exploreTab === 'moments' ? '#c5a880' : 'var(--color-text-2)'} strokeWidth="1.8">
                 <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
                 <path d="M8 3v4M16 3v4M3 10h18"/>
               </svg>
-              <span style={{ fontSize: 9, fontWeight: 600, color: exploreTab === 'moments' ? 'var(--color-text)' : 'var(--color-text-2)', letterSpacing: 0.3 }}>MOMENTS</span>
+              <span style={{ fontSize: 9, fontWeight: 600, color: exploreTab === 'moments' ? '#c5a880' : 'var(--color-text-2)', letterSpacing: 0.3 }}>MOMENTS</span>
             </button>
 
             {/* Members */}
@@ -531,16 +639,16 @@ export default function Search() {
                 alignItems: 'center', justifyContent: 'center',
                 gap: 3, padding: '10px 0',
                 background: 'none', border: 'none', cursor: 'pointer',
-                borderBottom: exploreTab === 'members' ? '2px solid var(--color-text)' : '2px solid transparent',
+                borderBottom: exploreTab === 'members' ? '2px solid #c5a880' : '2px solid transparent',
                 marginBottom: -1,
               }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={exploreTab === 'members' ? 'var(--color-text)' : 'var(--color-text-2)'} strokeWidth="1.8">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={exploreTab === 'members' ? '#c5a880' : 'var(--color-text-2)'} strokeWidth="1.8">
                 <circle cx="9" cy="7" r="4"/>
                 <path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
                 <path d="M16 3.13a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.87"/>
               </svg>
-              <span style={{ fontSize: 9, fontWeight: 600, color: exploreTab === 'members' ? 'var(--color-text)' : 'var(--color-text-2)', letterSpacing: 0.3 }}>MEMBERS</span>
+              <span style={{ fontSize: 9, fontWeight: 600, color: exploreTab === 'members' ? '#c5a880' : 'var(--color-text-2)', letterSpacing: 0.3 }}>MEMBERS</span>
             </button>
           </div>
 

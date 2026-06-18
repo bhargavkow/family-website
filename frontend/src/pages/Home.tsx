@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { FlipText } from '../components/ui/flip-text';
-import { Users, Calendar, Globe, Heart, TreePine, Home as HomeIcon, Star, Sparkles, MapPin, Baby } from 'lucide-react';
+import { Users, Globe, Heart, TreePine, Home as HomeIcon, Star, Sparkles, MapPin, Baby, History, Camera, Network } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
 import { apiGetMembers, apiGetFeed } from '../api';
 import type { User } from '../types';
@@ -26,8 +26,8 @@ const eras = [
     title: 'The Roots',
     desc: 'Our ancestors laid the first stones of the Baldaniya legacy — farming the land, building homes, and forging a family identity rooted in hard work and unity.',
     icon: TreePine,
-    color: '#22d3a5',
-    glow: 'rgba(34,211,165,0.25)',
+    color: '#c5a880',
+    glow: 'rgba(197, 168, 128, 0.15)',
     emoji: '🌱',
   },
   {
@@ -35,8 +35,8 @@ const eras = [
     title: 'Growing Branches',
     desc: 'The next generation expanded our reach. Children married, new households formed, and the family grew from one village into nearby towns.',
     icon: HomeIcon,
-    color: '#7c5cfc',
-    glow: 'rgba(124,92,252,0.25)',
+    color: '#c5a880',
+    glow: 'rgba(197, 168, 128, 0.15)',
     emoji: '🏡',
   },
   {
@@ -44,8 +44,8 @@ const eras = [
     title: 'Migration & Dreams',
     desc: 'Driven by ambition, family members migrated to cities. Engineers, teachers, and entrepreneurs emerged — carrying the family name to new heights.',
     icon: MapPin,
-    color: '#fc5ca8',
-    glow: 'rgba(252,92,168,0.25)',
+    color: '#c5a880',
+    glow: 'rgba(197, 168, 128, 0.15)',
     emoji: '✈️',
   },
   {
@@ -53,8 +53,8 @@ const eras = [
     title: 'The Baby Boom',
     desc: 'A generation of new births, weddings, and celebrations. Family gatherings grew louder and the dinner table grew longer.',
     icon: Baby,
-    color: '#f97316',
-    glow: 'rgba(249,115,22,0.25)',
+    color: '#c5a880',
+    glow: 'rgba(197, 168, 128, 0.15)',
     emoji: '👶',
   },
   {
@@ -62,8 +62,8 @@ const eras = [
     title: 'Digital Age',
     desc: 'The world got smaller. WhatsApp groups replaced letters, video calls replaced visits, and our family stayed closer than ever despite the miles.',
     icon: Globe,
-    color: '#5cf8fc',
-    glow: 'rgba(92,248,252,0.25)',
+    color: '#c5a880',
+    glow: 'rgba(197, 168, 128, 0.15)',
     emoji: '🌐',
   },
   {
@@ -71,8 +71,8 @@ const eras = [
     title: 'One Family, Forever',
     desc: 'Five generations strong. Spread across cities, united by blood. This platform is our digital home — where every memory, every face, every story lives forever.',
     icon: Heart,
-    color: '#fc5ca8',
-    glow: 'rgba(252,92,168,0.3)',
+    color: '#c5a880',
+    glow: 'rgba(197, 168, 128, 0.15)',
     emoji: '❤️',
   },
 ];
@@ -129,10 +129,9 @@ function EraCard({ era, index, total }: { era: typeof eras[0]; index: number; to
 
       {/* Right: Content card */}
       <div className="era-card">
-        {/* Top row: year badge + emoji */}
+        {/* Top row: year badge */}
         <div className="era-card-top">
           <span className="era-year">{era.year}</span>
-          <span className="era-emoji">{era.emoji}</span>
         </div>
 
         <h3 className="era-title">{era.title}</h3>
@@ -147,17 +146,119 @@ function EraCard({ era, index, total }: { era: typeof eras[0]; index: number; to
 
 // ─── Home Page ────────────────────────────────────────────
 export default function Home() {
-  const [slide, setSlide] = useState(0);
+  const [slide, setSlide] = useState(1); // Start at index 1 (the first real slide)
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [isTabVisible, setIsTabVisible] = useState(true);
   const [members, setMembers] = useState<User[]>([]);
   const [galleryImages, setGalleryImages] = useState<DomeGalleryImage[]>([]);
   const titleRef = useRef<HTMLDivElement>(null);
   const { ref: storyHeaderRef, inView: storyHeaderInView } = useInView({ triggerOnce: true, threshold: 0.1 });
 
-  // Auto-advance carousel
+  // Extended slides for infinite loop: [Last, Slide 1, Slide 2, Slide 3, First]
+  const extendedSlides = [
+    slides[slides.length - 1],
+    ...slides,
+    slides[0],
+  ];
+
+  // Tab visibility detection to pause auto-play and prevent background state desync
   useEffect(() => {
-    const t = setInterval(() => setSlide(s => (s + 1) % slides.length), 5000);
-    return () => clearInterval(t);
+    const handleVisibility = () => {
+      setIsTabVisible(!document.hidden);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
+
+  // Unified transition end and snap-back timer handler (independent of browser transitionend events)
+  useEffect(() => {
+    if (!isTransitioning) return;
+
+    const timer = setTimeout(() => {
+      setIsTransitioning(false);
+      setSlide((s) => {
+        if (s >= slides.length + 1) return 1;
+        if (s <= 0) return slides.length;
+        return s;
+      });
+    }, 500); // Match transition duration (0.5s)
+
+    return () => clearTimeout(timer);
+  }, [isTransitioning]);
+
+  // Touch & Mouse swipe gesture support
+  const handleStart = (clientX: number) => {
+    if (isTransitioning) return;
+    setTouchStart(clientX);
+    setIsDragging(true);
+    setDragOffset(0);
+  };
+
+  const handleMove = (clientX: number) => {
+    if (!isDragging || touchStart === null) return;
+    const diff = clientX - touchStart;
+    setDragOffset(diff);
+  };
+
+  const handleEnd = () => {
+    if (!isDragging || touchStart === null) return;
+    setIsDragging(false);
+
+    const threshold = window.innerWidth * 0.15; // Swipe threshold (15% of viewport width)
+    setIsTransitioning(true);
+
+    if (dragOffset < -threshold) {
+      // Swipe left -> next slide
+      setSlide((s) => s + 1);
+    } else if (dragOffset > threshold) {
+      // Swipe right -> prev slide
+      setSlide((s) => s - 1);
+    } else {
+      // Snap back to current slide (dragOffset reset to 0)
+    }
+    setDragOffset(0);
+    setTouchStart(null);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    handleStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    handleMove(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    handleEnd();
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.hero-dots')) return;
+    e.preventDefault(); // Prevent text selection/drag behaviors
+    handleStart(e.clientX);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    handleMove(e.clientX);
+  };
+
+  const handleMouseUpOrLeave = () => {
+    handleEnd();
+  };
+
+  // Auto-advance carousel (only when tab is active and user is not interacting)
+  useEffect(() => {
+    if (!isTabVisible || isDragging || isTransitioning) return;
+
+    const t = setInterval(() => {
+      setIsTransitioning(true);
+      setSlide((s) => s + 1);
+    }, 5000);
+    return () => clearInterval(t);
+  }, [slide, isTabVisible, isDragging, isTransitioning]);
 
   // Fetch members
   useEffect(() => {
@@ -195,28 +296,58 @@ export default function Home() {
           <SparkleIcon style={{ top: '10px', right: '-30px', width: '28px', height: '28px', animationDelay: '0.5s', animationDuration: '2s' }} />
           <SparkleIcon style={{ bottom: '-5px', left: '20%', width: '16px', height: '16px', animationDelay: '1s', animationDuration: '2.5s' }} />
           <SparkleIcon style={{ top: '-15px', right: '20%', width: '24px', height: '24px', animationDelay: '1.2s', animationDuration: '1.8s' }} />
-          <FlipText duration={2.2} delay={0}>BALDANIYA FAMILY</FlipText>
+          <FlipText duration={2.2} delay={0}>Baldaniya family</FlipText>
         </h1>
       </div>
 
       {/* ── Hero Carousel ─────────────────────────────── */}
-      <section className="hero-carousel" id="home-hero">
-        <div className="hero-track" style={{ transform: `translateX(-${slide * 100}%)` }}>
-          {slides.map((s) => (
-            <div key={s.id} className="hero-slide" style={{ background: s.bg }}>
+      <section
+        className="hero-carousel"
+        id="home-hero"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUpOrLeave}
+        onMouseLeave={handleMouseUpOrLeave}
+      >
+        <div
+          className="hero-track"
+          style={{
+            transform: isDragging
+              ? `translateX(calc(-${slide * 100}% + ${dragOffset}px))`
+              : `translateX(-${slide * 100}%)`,
+            transition: isTransitioning && !isDragging
+              ? 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)'
+              : 'none'
+          }}
+        >
+          {extendedSlides.map((s, idx) => (
+            <div key={idx} className="hero-slide" style={{ background: s.bg }}>
               <div className="hero-overlay" />
             </div>
           ))}
         </div>
         <div className="hero-dots">
-          {slides.map((_, i) => (
-            <button
-              key={i}
-              className={`hero-dot ${i === slide ? 'active' : ''}`}
-              onClick={() => setSlide(i)}
-              aria-label={`Slide ${i + 1}`}
-            />
-          ))}
+          {slides.map((_, i) => {
+            let dotActiveIndex = slide - 1;
+            if (slide >= slides.length + 1) dotActiveIndex = 0;
+            if (slide <= 0) dotActiveIndex = slides.length - 1;
+
+            return (
+              <button
+                key={i}
+                className={`hero-dot ${i === dotActiveIndex ? 'active' : ''}`}
+                onClick={() => {
+                  if (isTransitioning) return;
+                  setIsTransitioning(true);
+                  setSlide(i + 1);
+                }}
+                aria-label={`Slide ${i + 1}`}
+              />
+            );
+          })}
         </div>
       </section>
 
@@ -275,13 +406,13 @@ export default function Home() {
           </div>
           <div className="stats-grid">
             {[
-              { icon: Users, label: 'Family Members', value: members.length || 120, suffix: '+', color: 'var(--color-primary)' },
-              { icon: Calendar, label: 'Years of Legacy', value: 100, suffix: '+', color: 'var(--color-accent)' },
-              { icon: Globe, label: 'Generations', value: 5, suffix: '', color: 'var(--color-accent-2)' },
-              { icon: Heart, label: 'Memories Shared', value: 500, suffix: '+', color: 'var(--color-success)' },
+              { icon: Users, label: 'Family Members', value: members.length || 120, suffix: '+', color: '#c5a880' },
+              { icon: History, label: 'Years of Legacy', value: 100, suffix: '+', color: '#c5a880' },
+              { icon: Network, label: 'Generations', value: 5, suffix: '', color: '#c5a880' },
+              { icon: Camera, label: 'Memories Shared', value: 500, suffix: '+', color: '#c5a880' },
             ].map(({ icon: Icon, label, value, suffix, color }) => (
               <div className="stat-card card" key={label}>
-                <div className="stat-icon" style={{ color }}>
+                <div className="stat-icon" style={{ color: '#ffffff' }}>
                   <Icon size={32} />
                 </div>
                 <div className="stat-value" style={{ color }}>

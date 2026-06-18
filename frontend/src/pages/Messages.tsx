@@ -166,8 +166,8 @@ export default function Messages() {
   // ── Chat View
   if (view === 'chat' && activeUser) {
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', flexDirection: 'column', background: 'var(--color-bg)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', height: 60, padding: '0 8px', borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg)', flexShrink: 0 }}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', flexDirection: 'column', background: '#000000' }}>
+        <div style={{ display: 'flex', alignItems: 'center', height: 60, padding: '0 8px', borderBottom: '1px solid var(--color-border)', background: '#000000', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
             <button onClick={closeChat} style={{ background: 'none', border: 'none', padding: '10px 8px', cursor: 'pointer', color: 'var(--color-text)', display: 'flex', alignItems: 'center' }}>
               <ArrowLeft size={28} strokeWidth={2.5} />
@@ -176,11 +176,11 @@ export default function Messages() {
               {activeUser.profilePhoto?.url ? (
                 <img src={activeUser.profilePhoto.url} alt={activeUser.name} style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
               ) : (
-                <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--grad-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>{activeUser.name?.[0]?.toUpperCase()}</div>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255, 255, 255, 0.05)', color: '#c5a880', border: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0, boxSizing: 'border-box' }}>{activeUser.name?.[0]?.toUpperCase()}</div>
               )}
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeUser.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--color-text-2)', marginTop: -1 }}>@{activeUser.username}</div>
+                <div style={{ fontSize: 12, color: '#c5a880', marginTop: -1 }}>@{activeUser.username}</div>
               </div>
             </div>
           </div>
@@ -213,7 +213,7 @@ export default function Messages() {
           <div ref={bottomRef} />
         </div>
 
-        <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--color-bg)', flexShrink: 0 }}>
+        <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: 10, background: '#000000', flexShrink: 0 }}>
           <textarea id="message-input" placeholder="Message..." value={text} onChange={e => setText(e.target.value)} onKeyDown={handleKey} rows={1} style={{ flex: 1, background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 22, padding: '10px 16px', fontSize: 15, color: 'var(--color-text)', resize: 'none', maxHeight: 120, outline: 'none' }} />
           <button onClick={sendMessage} disabled={!text.trim() || sending} style={{ background: 'none', border: 'none', color: text.trim() ? 'var(--color-primary)' : 'var(--color-text-2)', fontWeight: 700, fontSize: 15, cursor: text.trim() ? 'pointer' : 'default', padding: '8px 4px', transition: 'color 0.2s' }}>
             {sending ? <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> : <Send size={22} />}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -49,8 +49,7 @@ export default function Login({ inlineMode = false }: { inlineMode?: boolean } =
       <div className="login-card card-glass animate-scale-in">
         {/* Logo */}
         <div className="login-logo">
-          <div className="login-logo-icon">🌳</div>
-          <h1 className="login-title">Family Tree</h1>
+          <h1 className="login-brand">Baldaniya</h1>
           <p className="login-subtitle">Sign in to your family account</p>
         </div>
 
@@ -116,12 +115,6 @@ export default function Login({ inlineMode = false }: { inlineMode?: boolean } =
             {loading ? <><div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> Signing in...</> : 'Sign In'}
           </button>
         </form>
-
-        <p className="login-footer">
-          <Link to="/" style={{ color: 'var(--color-text-2)', fontSize: 13 }}>
-            ← Back to Home
-          </Link>
-        </p>
       </div>
     </div>
   );
