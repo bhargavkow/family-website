@@ -240,14 +240,14 @@ function ConfirmDeleteModal({ onConfirm, onCancel }: {
           Are you sure you want to delete this post? This action cannot be undone.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0, borderTop: '1px solid var(--color-border)', margin: '0 -24px -24px' }}>
-          <button 
-            style={{ background: 'none', border: 'none', padding: '14px', color: 'var(--color-error)', fontWeight: 700, borderBottom: '1px solid var(--color-border)', cursor: 'pointer' }} 
+          <button
+            style={{ background: 'none', border: 'none', padding: '14px', color: 'var(--color-error)', fontWeight: 700, borderBottom: '1px solid var(--color-border)', cursor: 'pointer' }}
             onClick={onConfirm}
           >
             Delete
           </button>
-          <button 
-            style={{ background: 'none', border: 'none', padding: '14px', color: 'var(--color-text)', cursor: 'pointer' }} 
+          <button
+            style={{ background: 'none', border: 'none', padding: '14px', color: 'var(--color-text)', cursor: 'pointer' }}
             onClick={onCancel}
           >
             Cancel
@@ -440,8 +440,8 @@ function PostItem({ post, currentUser, onDelete, onLikeToggle }: {
 
             {showMenu && (
               <div className="post-dot-menu">
-                <button 
-                  className="post-dot-menu-item danger" 
+                <button
+                  className="post-dot-menu-item danger"
                   onClick={() => {
                     setShowMenu(false);
                     setShowConfirmDelete(true);

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Users, Image, MessageCircle, TrendingUp,
   Plus, Trash2, Eye, ToggleLeft, ToggleRight, X, LogOut, Lock, Shield, Edit3,
-  LayoutDashboard, FolderOpen, FolderPlus, ArrowLeft, Upload, Calendar
+  LayoutDashboard, FolderOpen, FolderPlus, ArrowLeft, Upload, Calendar,
+  User as UserIcon, EyeOff, AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -19,6 +20,7 @@ import type { User, Post, FamilyEvent } from '../types';
 import PostLightbox from '../components/PostLightbox';
 import toast from 'react-hot-toast';
 import './Admin.css';
+import './Login.css';
 
 type Tab = 'overview' | 'members' | 'posts' | 'moments' | 'events';
 
@@ -248,6 +250,7 @@ function AdminLoginGate({ onSuccess }: { onSuccess: () => void }) {
   const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -256,7 +259,7 @@ function AdminLoginGate({ onSuccess }: { onSuccess: () => void }) {
     setError('');
     setLoading(true);
     try {
-      await login(username, password);
+      await login(username.trim(), password);
       onSuccess();
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Invalid credentials');
@@ -266,33 +269,90 @@ function AdminLoginGate({ onSuccess }: { onSuccess: () => void }) {
   };
 
   return (
-    <div className="admin-gate-screen">
-      <div className="admin-gate-card">
-        <div className="admin-gate-header">
-          <div className="admin-gate-icon">
-            <Shield size={32} />
-          </div>
-          <h1 className="admin-gate-title">Admin Access</h1>
-          <p className="admin-gate-subtitle">Enter your admin credentials to continue</p>
+    <div className="login-page">
+      <div className="login-bg">
+        <div className="login-bg-orb orb-1" />
+        <div className="login-bg-orb orb-2" />
+      </div>
+
+      <div className="login-card card-glass animate-scale-in">
+        {/* Logo / Header */}
+        <div className="login-logo">
+          <h1 className="login-brand" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            Baldaniya
+          </h1>
+          <p className="login-subtitle" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <Shield size={12} style={{ color: '#c5a880' }} /> Admin Portal Access
+          </p>
         </div>
-        <form className="admin-gate-form" onSubmit={handleSubmit}>
-          <div className="admin-gate-field">
-            <label htmlFor="gate-username">Username</label>
-            <div className="admin-gate-input-wrap">
-              <Lock size={16} className="admin-gate-input-icon" />
-              <input id="gate-username" type="text" autoComplete="username" placeholder="admin" required value={username} onChange={e => setUsername(e.target.value)} />
+
+        {/* Error */}
+        {error && (
+          <div className="login-error animate-slide-up">
+            <AlertCircle size={16} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="form-group">
+            <label className="label" htmlFor="gate-username">Username</label>
+            <div className="input-wrap">
+              <UserIcon size={16} className="input-icon" />
+              <input
+                id="gate-username"
+                type="text"
+                className="input input-with-icon"
+                placeholder="Enter admin username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                autoFocus
+                autoComplete="username"
+              />
             </div>
           </div>
-          <div className="admin-gate-field">
-            <label htmlFor="gate-password">Password</label>
-            <div className="admin-gate-input-wrap">
-              <Lock size={16} className="admin-gate-input-icon" />
-              <input id="gate-password" type="password" autoComplete="current-password" placeholder="••••••••" required value={password} onChange={e => setPassword(e.target.value)} />
+
+          <div className="form-group">
+            <label className="label" htmlFor="gate-password">Password</label>
+            <div className="input-wrap">
+              <Lock size={16} className="input-icon" />
+              <input
+                id="gate-password"
+                type={showPass ? 'text' : 'password'}
+                className="input input-with-icon input-with-icon-right"
+                placeholder="Enter admin password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                className="input-icon-right"
+                onClick={() => setShowPass(!showPass)}
+                aria-label="Toggle password visibility"
+              >
+                {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </div>
-          {error && <div className="admin-gate-error">{error}</div>}
-          <button type="submit" className="admin-gate-btn" disabled={loading}>
-            {loading ? <div className="spinner" style={{ width: 20, height: 20 }} /> : 'Login to Admin'}
+
+          <button
+            type="submit"
+            className="btn btn-primary btn-lg"
+            style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}
+            disabled={loading}
+            id="gate-submit"
+          >
+            {loading ? (
+              <>
+                <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
+                Signing in...
+              </>
+            ) : (
+              'Sign In as Admin'
+            )}
           </button>
         </form>
       </div>
@@ -541,8 +601,22 @@ export default function Admin() {
 
   const { user, loading: authLoading, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [tab, setTab] = useState<Tab>('overview');
+  // Extract tab from URL path (e.g. /admin/members -> members)
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const currentTabFromUrl = pathParts[1] as Tab;
+  const validTabs: Tab[] = ['overview', 'members', 'posts', 'moments', 'events'];
+  const tab = validTabs.includes(currentTabFromUrl) ? currentTabFromUrl : 'overview';
+
+  useEffect(() => {
+    // If at /admin or /admin/, redirect to the last saved tab or overview
+    if (location.pathname === '/admin' || location.pathname === '/admin/') {
+      const saved = localStorage.getItem('admin_current_tab');
+      const targetTab = (saved && validTabs.includes(saved as Tab)) ? saved : 'overview';
+      navigate(`/admin/${targetTab}`, { replace: true });
+    }
+  }, [location.pathname, navigate]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
   const [members, setMembers] = useState<User[]>([]);
@@ -607,6 +681,18 @@ export default function Admin() {
     };
   }, [showAddMember, editingMember, showCreateMoment, showLogoutConfirm, isSidebarOpen, lightboxPost]);
 
+  useEffect(() => {
+    const originalPadding = document.body.style.paddingBottom;
+    document.body.style.paddingBottom = '0px';
+    return () => {
+      document.body.style.paddingBottom = originalPadding;
+    };
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('admin_current_tab', tab);
+  }, [tab]);
+
   const handleLogout = async () => {
     await logout();
     navigate('/');
@@ -639,7 +725,7 @@ export default function Admin() {
   };
 
   const handleNav = (t: Tab) => {
-    setTab(t);
+    navigate(`/admin/${t}`);
     setIsSidebarOpen(false);
   };
 
@@ -715,7 +801,7 @@ export default function Admin() {
           <div className="admin-mobile-title">
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </div>
-          <div style={{ width: 40 }} />
+          <div style={{ width: 42 }} />
         </header>
 
         {/* ── Overview ──────────────────────────────── */}

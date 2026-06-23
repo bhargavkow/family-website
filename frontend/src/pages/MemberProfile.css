@@ -75,8 +75,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--grad-primary);
-  color: white;
+  background: linear-gradient(135deg, #c5a880, #e6d5c3);
+  color: black;
   font-size: 32px;
   font-weight: 700;
   border-radius: 50%;
@@ -174,8 +174,8 @@
 }
 
 .profile-action-btn.btn-primary {
-  background: var(--color-primary);
-  color: white;
+  background: #c5a880;
+  color: black;
 }
 
 .profile-action-btn.following {
@@ -341,8 +341,8 @@
 }
 
 .user-initial-sm {
-  background: var(--grad-primary);
-  color: white;
+  background: linear-gradient(135deg, #c5a880, #e6d5c3);
+  color: black;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -360,7 +360,7 @@
 
 .progress-bar-fill {
   height: 100%;
-  background: var(--grad-primary);
+  background: linear-gradient(135deg, #c5a880, #e6d5c3);
   border-radius: 10px;
   transition: width 0.3s ease;
 }

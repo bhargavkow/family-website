@@ -48,6 +48,14 @@ function AppContent() {
 
   // Show only Login form when not authenticated
   if (!user) {
+    const isAdminRoute = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
+    if (isAdminRoute) {
+      return (
+        <Suspense fallback={null}>
+          <Admin />
+        </Suspense>
+      );
+    }
     return (
       <Suspense fallback={null}>
         <Login />

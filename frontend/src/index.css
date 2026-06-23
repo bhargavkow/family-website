@@ -449,7 +449,7 @@ textarea {
 
 .avatar-ring {
   padding: 2px;
-  background: var(--grad-primary);
+  background: linear-gradient(135deg, #c5a880, #e6d5c3);
   border-radius: 50%;
   border: 2px solid var(--color-bg);
 }

@@ -166,7 +166,7 @@ function UserListModal({
                 ) : (
                   <div style={{
                     width: 52, height: 52, borderRadius: '50%',
-                    background: 'var(--grad-primary)', color: 'white',
+                    background: 'linear-gradient(135deg, #c5a880, #e6d5c3)', color: 'black',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontWeight: 700, fontSize: 20,
                   }}>{u.name?.[0]?.toUpperCase()}</div>
@@ -464,7 +464,7 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
         }}>
           <button style={{ border: 'none', background: 'none', fontSize: 14, color: 'var(--color-text-2)', fontWeight: 600, cursor: 'pointer' }} onClick={onClose}>Cancel</button>
           <h3 style={{ fontWeight: 700, fontSize: 16 }}>Edit profile</h3>
-          <button style={{ border: 'none', background: 'none', fontSize: 14, color: 'var(--color-primary)', fontWeight: 700, cursor: 'pointer' }} onClick={handleSave} disabled={loading}>
+          <button style={{ border: 'none', background: 'none', fontSize: 14, color: '#c5a880', fontWeight: 700, cursor: 'pointer' }} onClick={handleSave} disabled={loading}>
             {loading ? <div className="spinner" style={{ width: 16, height: 16 }} /> : 'Done'}
           </button>
         </div>
@@ -478,7 +478,7 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
               }
             </div>
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhoto} id="profile-photo-input" />
-            <button style={{ fontSize: 14, color: 'var(--color-primary)', fontWeight: 600, background: 'none', marginTop: 12, border: 'none', cursor: 'pointer' }} onClick={() => fileRef.current?.click()}>
+            <button style={{ fontSize: 14, color: '#c5a880', fontWeight: 600, background: 'none', marginTop: 12, border: 'none', cursor: 'pointer' }} onClick={() => fileRef.current?.click()}>
               Edit picture or avatar
             </button>
           </div>
@@ -547,7 +547,7 @@ function EditProfileModal({ user, onClose, onSave }: { user: User; onClose: () =
         }
         .input-minimal:focus {
           outline: none;
-          border-bottom-color: var(--color-primary);
+          border-bottom-color: #c5a880;
         }
         @keyframes slideUpSheet {
           from { transform: translateY(100%); }
@@ -662,7 +662,7 @@ function CreatePostModal({ onClose, onCreated, acceptType = 'image/*,video/*', i
           <h3 style={{ fontWeight: 700, fontSize: 16, flex: 1, textAlign: 'center' }}>{file ? 'New post' : 'Create new post'}</h3>
           <button
             className="btn btn-ghost"
-            style={{ border: 'none', background: 'none', fontSize: 16, color: file ? 'var(--color-primary)' : 'var(--color-text-3)', fontWeight: 700, minWidth: 56, cursor: file ? 'pointer' : 'default' }}
+            style={{ border: 'none', background: 'none', fontSize: 16, color: file ? '#c5a880' : 'var(--color-text-3)', fontWeight: 700, minWidth: 56, cursor: file ? 'pointer' : 'default' }}
             onClick={handleCreate}
             disabled={loading || !file}
           >
@@ -812,7 +812,7 @@ function SavedPostsModal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     apiGetSavedPosts()
       .then(res => setPosts(res.data))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -1384,8 +1384,8 @@ export default function MemberProfile({ usernameOverride }: { usernameOverride?:
             postTab === 'images'
               ? posts.filter(p => p.mediaType === 'image')
               : postTab === 'videos'
-              ? posts.filter(p => p.mediaType === 'video')
-              : posts
+                ? posts.filter(p => p.mediaType === 'video')
+                : posts
           }
           onClose={() => setLightboxIdx(null)}
           onDelete={(postId) => {
