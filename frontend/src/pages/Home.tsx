@@ -1,12 +1,326 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FlipText } from '../components/ui/flip-text';
-import { Users, Globe, Heart, TreePine, Home as HomeIcon, Star, Sparkles, MapPin, Baby, History, Camera, Network } from 'lucide-react';
+import { Users, Globe, Heart, TreePine, Home as HomeIcon, Star, Sparkles, MapPin, Baby, History, Camera, Network, ChevronLeft, ChevronRight, Plus, ArrowLeft, Grid, Image, Video } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
-import { apiGetMembers, apiGetFeed } from '../api';
-import type { User } from '../types';
+import { apiGetMembers, apiGetFeed, apiCreatePost } from '../api';
+import type { User, Post } from '../types';
 import DomeGallery from '../components/ui/DomeGallery';
 import type { DomeGalleryImage } from '../components/ui/DomeGallery';
+import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-hot-toast';
 import './Home.css';
+
+// ─── Image Compression Helper ─────────────────────────────
+function compressImage(file: File): Promise<Blob | File> {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) {
+      return resolve(file);
+    }
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const MAX_SIZE = 1200;
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', 0.8);
+      };
+    };
+  });
+}
+
+// ─── Share Post Sheet ─────────────────────────────────────
+function SharePostSheet({ onFileSelected, onCancel }: {
+  onFileSelected: (file: File, accept: string) => void;
+  onCancel: () => void;
+}) {
+  const imageRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) onFileSelected(f, 'image/*');
+  };
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) onFileSelected(f, 'video/*');
+  };
+
+  return (
+    <>
+      <input ref={imageRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageChange} />
+      <input ref={videoRef} type="file" accept="video/*" style={{ display: 'none' }} onChange={handleVideoChange} />
+
+      <div
+        style={{
+          position: 'fixed', inset: 0, zIndex: 1200,
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+        }}
+        onClick={onCancel}
+      />
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        zIndex: 1201,
+        background: 'var(--color-surface)',
+        borderRadius: '24px 24px 0 0',
+        padding: '12px 0 0',
+        animation: 'slideUpSheet 0.28s cubic-bezier(0.32,0.72,0,1)',
+        boxShadow: '0 -8px 40px rgba(0,0,0,0.5)',
+      }}>
+        <div style={{
+          width: 36, height: 4, borderRadius: 99,
+          background: 'var(--color-border)',
+          margin: '0 auto 20px',
+        }} />
+
+        <p style={{
+          textAlign: 'center', fontWeight: 800, fontSize: 17,
+          color: 'var(--color-text)', paddingBottom: 20,
+          letterSpacing: '-0.3px',
+        }}>Create a Post</p>
+
+        <div style={{ display: 'flex', gap: 12, padding: '0 16px 20px' }}>
+          <button
+            onClick={() => imageRef.current?.click()}
+            style={{
+              flex: 1,
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              gap: 10, padding: '20px 12px',
+              background: 'var(--color-surface-2)',
+              border: '1.5px solid var(--color-border)',
+              borderRadius: 18, cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            <div style={{
+              width: 52, height: 52,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Image size={32} color="#c5a880" />
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-text)' }}>Image Post</div>
+              <div style={{ fontSize: 11, color: 'var(--color-text-2)', marginTop: 2 }}>Photo from gallery</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => videoRef.current?.click()}
+            style={{
+              flex: 1,
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              gap: 10, padding: '20px 12px',
+              background: 'var(--color-surface-2)',
+              border: '1.5px solid var(--color-border)',
+              borderRadius: 18, cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            <div style={{
+              width: 52, height: 52,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Video size={32} color="#c5a880" />
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-text)' }}>Video Post</div>
+              <div style={{ fontSize: 11, color: 'var(--color-text-2)', marginTop: 2 }}>Video from gallery</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Create Post Modal ────────────────────────────────────
+function CreatePostModal({ onClose, onCreated, acceptType = 'image/*,video/*', initialFile }: { onClose: () => void; onCreated: (p: Post) => void; acceptType?: string; initialFile?: File }) {
+  const [file, setFile] = useState<File | null>(initialFile || null);
+  const [preview, setPreview] = useState(initialFile ? URL.createObjectURL(initialFile) : '');
+  const [caption, setCaption] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  useEffect(() => {
+    return () => { if (preview) URL.revokeObjectURL(preview); };
+  }, [preview]);
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 100 * 1024 * 1024) return toast.error('File too large (max 100MB)');
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
+  };
+
+  const { user: me } = useAuth();
+
+  const handleCreate = async () => {
+    if (!file) return toast.error('Please select a file');
+    setLoading(true);
+    setProgress(0);
+    try {
+      const optimizedFile = await compressImage(file);
+      const fd = new FormData();
+      fd.append('media', optimizedFile, file.name);
+      fd.append('caption', caption);
+
+      const res = await apiCreatePost(fd, {
+        onUploadProgress: (ev: any) => {
+          const percent = Math.round((ev.loaded * 100) / ev.total);
+          setProgress(percent);
+        }
+      });
+
+      onCreated(res.data);
+      toast.success('Post shared successfully!');
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.response?.data?.message || 'Failed to share post. Try a smaller file.');
+    } finally {
+      setLoading(false);
+      setProgress(0);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={loading ? undefined : onClose} style={{ zIndex: 1300 }}>
+      <div className="modal animate-scale-in" style={{ maxWidth: file ? 800 : 420 }} onClick={e => e.stopPropagation()} id="create-post-modal">
+        <div className="modal-header" style={{ borderBottom: '1px solid var(--color-border)', padding: '8px 16px', display: 'flex', alignItems: 'center', height: 56 }}>
+          {!loading && (
+            <button
+              style={{ background: 'none', border: 'none', padding: '8px', cursor: 'pointer', color: 'var(--color-text)', display: 'flex', alignItems: 'center', minWidth: 44 }}
+              onClick={onClose}
+            >
+              <ArrowLeft size={26} strokeWidth={2.5} />
+            </button>
+          )}
+          <h3 style={{ fontWeight: 700, fontSize: 16, flex: 1, textAlign: 'center' }}>{file ? 'New post' : 'Create new post'}</h3>
+          <button
+            className="btn btn-ghost"
+            style={{ border: 'none', background: 'none', fontSize: 16, color: file ? '#c5a880' : 'var(--color-text-3)', fontWeight: 700, minWidth: 56, cursor: file ? 'pointer' : 'default' }}
+            onClick={handleCreate}
+            disabled={loading || !file}
+          >
+            {loading ? <div className="spinner" style={{ width: 16, height: 16 }} /> : 'Share'}
+          </button>
+        </div>
+        <div className="modal-body" style={{ padding: 0 }}>
+          {!file ? (
+            <div className="upload-zone" onClick={() => fileRef.current?.click()} id="upload-zone" style={{ height: 450, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 20 }}>
+              <div style={{ color: 'var(--color-text-2)', marginBottom: 20 }}>
+                <Grid size={96} strokeWidth={1} />
+              </div>
+              <p style={{ fontSize: 22, fontWeight: 300, color: 'var(--color-text)', marginBottom: 8 }}>Drag photos and videos here</p>
+              <p style={{ fontSize: 14, color: 'var(--color-text-2)', marginBottom: 24 }}>Select images or videos up to 100MB</p>
+              <button className="btn btn-primary" style={{ borderRadius: 8, padding: '10px 24px', fontWeight: 600, fontSize: 14 }}>Select from device</button>
+            </div>
+          ) : (
+            <div className="post-create-layout" style={{ display: 'flex', height: 480, flexDirection: window.innerWidth < 640 ? 'column' : 'row' }}>
+              <div className="post-preview-container" style={{ flex: 1.5, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                {file.type.startsWith('video/')
+                  ? <video src={preview} controls style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                  : <img src={preview} alt="preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                }
+              </div>
+              <div className="post-create-sidebar" style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--color-border)' }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
+                  {me?.profilePhoto?.url ? (
+                    <img src={me.profilePhoto.url} alt={me.username} className="avatar" style={{ width: 32, height: 32 }} />
+                  ) : (
+                    <div className="avatar" style={{ width: 32, height: 32, background: 'var(--color-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600 }}>
+                      {me?.username?.[0]?.toUpperCase()}
+                    </div>
+                  )}
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>{me?.username}</span>
+                </div>
+                <textarea
+                  id="post-caption"
+                  className="caption-input"
+                  rows={10}
+                  placeholder="Write a caption..."
+                  value={caption}
+                  onChange={e => setCaption(e.target.value)}
+                  disabled={loading}
+                  style={{ border: 'none', background: 'none', color: 'var(--color-text)', fontSize: 15, padding: 0, resize: 'none', flex: 1 }}
+                />
+              </div>
+            </div>
+          )}
+          <input ref={fileRef} type="file" accept={acceptType} style={{ display: 'none' }} onChange={handleFile} id="post-file-input" />
+
+          {loading && (
+            <div className="upload-progress-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'white' }}>
+              <div className="spinner" style={{ width: 40, height: 40, marginBottom: 16 }} />
+              <span>Sharing {progress}%</span>
+            </div>
+          )}
+        </div>
+      </div>
+      <style>{`
+        .caption-input:focus { outline: none; }
+        
+        @media (max-width: 640px) {
+          #create-post-modal {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+          }
+          .post-create-layout {
+            flex-direction: column !important;
+            height: calc(100vh - 60px) !important;
+            overflow-y: auto;
+          }
+          .post-preview-container {
+            min-height: 350px !important;
+            max-height: 450px !important;
+          }
+          .post-create-sidebar {
+            border-left: none !important;
+            border-top: 1px solid var(--color-border);
+            flex: none !important;
+            padding-bottom: 40px !important;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 import img1 from '../assets/_MG_1369.JPG';
 import img2 from '../assets/_MG_1381.JPG';
@@ -146,6 +460,7 @@ function EraCard({ era, index, total }: { era: typeof eras[0]; index: number; to
 
 // ─── Home Page ────────────────────────────────────────────
 export default function Home() {
+  const navigate = useNavigate();
   const [slide, setSlide] = useState(1); // Start at index 1 (the first real slide)
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -156,6 +471,84 @@ export default function Home() {
   const [galleryImages, setGalleryImages] = useState<DomeGalleryImage[]>([]);
   const titleRef = useRef<HTMLDivElement>(null);
   const { ref: storyHeaderRef, inView: storyHeaderInView } = useInView({ triggerOnce: true, threshold: 0.1 });
+
+  // Post upload modals states
+  const [modal, setModal] = useState<'sharePost' | 'createPost' | null>(null);
+  const [postAcceptType, setPostAcceptType] = useState('image/*,video/*');
+  const [postInitialFile, setPostInitialFile] = useState<File | undefined>(undefined);
+
+  // Stories scroll and drag references/state
+  const storiesRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+  const [isDraggingStories, setIsDraggingStories] = useState(false);
+  const [storiesStartX, setStoriesStartX] = useState(0);
+  const [storiesScrollLeft, setStoriesScrollLeft] = useState(0);
+  const [dragMoved, setDragMoved] = useState(false);
+
+  const checkArrowsVisibility = () => {
+    const el = storiesRef.current;
+    if (!el) return;
+    setShowLeftArrow(el.scrollLeft > 5);
+    setShowRightArrow(el.scrollWidth - el.clientWidth - el.scrollLeft > 5);
+  };
+
+  useEffect(() => {
+    checkArrowsVisibility();
+    // Add a delay for layout rendering
+    const timer = setTimeout(checkArrowsVisibility, 500);
+    window.addEventListener('resize', checkArrowsVisibility);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', checkArrowsVisibility);
+    };
+  }, [members]);
+
+  const scrollStories = (direction: 'left' | 'right') => {
+    const el = storiesRef.current;
+    if (!el) return;
+    const scrollAmount = 240;
+    const targetScroll = el.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount);
+    el.scrollTo({
+      left: targetScroll,
+      behavior: 'smooth'
+    });
+  };
+
+  const handleStoriesMouseDown = (e: React.MouseEvent) => {
+    const el = storiesRef.current;
+    if (!el) return;
+    setIsDraggingStories(true);
+    setStoriesStartX(e.pageX - el.offsetLeft);
+    setStoriesScrollLeft(el.scrollLeft);
+    setDragMoved(false);
+  };
+
+  const handleStoriesMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingStories) return;
+    const el = storiesRef.current;
+    if (!el) return;
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    const walk = (x - storiesStartX) * 1.2;
+    if (Math.abs(walk) > 5) {
+      setDragMoved(true);
+      el.scrollLeft = storiesScrollLeft - walk;
+      checkArrowsVisibility();
+    }
+  };
+
+  const handleStoriesMouseUpOrLeave = () => {
+    setIsDraggingStories(false);
+  };
+
+  const handleStoryClick = (e: React.MouseEvent, username: string) => {
+    if (dragMoved) {
+      e.preventDefault();
+      return;
+    }
+    navigate(`/members/${username}`);
+  };
 
   // Extended slides for infinite loop: [Last, Slide 1, Slide 2, Slide 3, First]
   const extendedSlides = [
@@ -291,14 +684,85 @@ export default function Home() {
 
       {/* ── Title Section ─────────────────────────────── */}
       <div className="home-title-bar" ref={titleRef}>
+        <button 
+          className="home-title-bar-plus" 
+          onClick={() => setModal('sharePost')}
+          aria-label="Create Post"
+        >
+          <Plus size={26} strokeWidth={2.5} />
+        </button>
         <h1>
           <SparkleIcon style={{ top: '-10px', left: '-20px', width: '20px', height: '20px', animationDelay: '0s', animationDuration: '1.5s' }} />
           <SparkleIcon style={{ top: '10px', right: '-30px', width: '28px', height: '28px', animationDelay: '0.5s', animationDuration: '2s' }} />
           <SparkleIcon style={{ bottom: '-5px', left: '20%', width: '16px', height: '16px', animationDelay: '1s', animationDuration: '2.5s' }} />
           <SparkleIcon style={{ top: '-15px', right: '20%', width: '24px', height: '24px', animationDelay: '1.2s', animationDuration: '1.8s' }} />
-          <FlipText duration={2.2} delay={0}>Baldaniya family</FlipText>
+          <FlipText duration={2.2} delay={0}>Baldaniya</FlipText>
         </h1>
       </div>
+
+      {/* ── Member Stories Section ───────────────────── */}
+      {members.length > 0 && (
+        <div className="member-stories-section">
+          {showLeftArrow && (
+            <button 
+              className="story-nav-btn prev" 
+              onClick={() => scrollStories('left')}
+              aria-label="Previous profiles"
+            >
+              <ChevronLeft size={20} />
+            </button>
+          )}
+          <div
+            className="member-stories-track"
+            ref={storiesRef}
+            onScroll={checkArrowsVisibility}
+            onMouseDown={handleStoriesMouseDown}
+            onMouseMove={handleStoriesMouseMove}
+            onMouseUp={handleStoriesMouseUpOrLeave}
+            onMouseLeave={handleStoriesMouseUpOrLeave}
+            style={{ cursor: isDraggingStories ? 'grabbing' : 'grab' }}
+          >
+            {members.map((m) => (
+              <div
+                key={m._id}
+                className="story-item"
+                onClick={(e) => handleStoryClick(e, m.username)}
+              >
+                <div className="story-avatar-wrapper">
+                  <div className="story-avatar-gradient">
+                    <div className="story-avatar-inner">
+                      {m.profilePhoto?.url ? (
+                        <img 
+                          src={m.profilePhoto.url} 
+                          alt={m.name} 
+                          className="story-avatar-img"
+                          draggable="false"
+                        />
+                      ) : (
+                        <div className="story-avatar-placeholder">
+                          {m.name?.[0]?.toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <span className="story-username">
+                  {m.username.length > 11 ? `${m.username.slice(0, 10)}...` : m.username}
+                </span>
+              </div>
+            ))}
+          </div>
+          {showRightArrow && (
+            <button 
+              className="story-nav-btn next" 
+              onClick={() => scrollStories('right')}
+              aria-label="Next profiles"
+            >
+              <ChevronRight size={20} />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── Hero Carousel ─────────────────────────────── */}
       <section
@@ -457,6 +921,30 @@ export default function Home() {
           </div>
         </div>
       </section>
+      {/* ── Modals ───────────────────────────────────── */}
+      {modal === 'sharePost' && (
+        <SharePostSheet
+          onFileSelected={(file, accept) => {
+            setPostAcceptType(accept);
+            setPostInitialFile(file);
+            setModal('createPost');
+          }}
+          onCancel={() => setModal(null)}
+        />
+      )}
+
+      {modal === 'createPost' && (
+        <CreatePostModal
+          onClose={() => { setModal(null); setPostInitialFile(undefined); }}
+          onCreated={() => {
+            setModal(null);
+            setPostInitialFile(undefined);
+            window.location.reload();
+          }}
+          acceptType={postAcceptType}
+          initialFile={postInitialFile}
+        />
+      )}
     </div>
   );
 }
