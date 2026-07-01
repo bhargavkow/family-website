@@ -326,13 +326,6 @@ import img1 from '../assets/_MG_1369.JPG';
 import img2 from '../assets/_MG_1381.JPG';
 import img3 from '../assets/_MG_1506.JPG';
 
-// ─── Carousel Data ────────────────────────────────────────
-const slides = [
-  { id: 1, bg: `url(${img1}) center / cover no-repeat` },
-  { id: 2, bg: `url(${img2}) center / cover no-repeat` },
-  { id: 3, bg: `url(${img3}) center / cover no-repeat` },
-];
-
 // ─── Story Timeline Data ───────────────────────────────────
 const eras = [
   {
