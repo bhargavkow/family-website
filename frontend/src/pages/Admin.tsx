@@ -13,16 +13,17 @@ import {
   apiAdminGetPosts, apiAdminDeletePost, apiAdminUpdateMember,
   apiGetMoments, apiAdminCreateMoment, apiAdminAddMomentImages,
   apiAdminDeleteMomentImage, apiAdminDeleteMoment,
-  apiGetEvents, apiCreateEvent, apiDeleteEvent
+  apiGetEvents, apiCreateEvent, apiDeleteEvent,
+  apiGetHeroImages, apiAdminUploadHeroImage, apiAdminDeleteHeroImage
 } from '../api';
-import type { Moment } from '../api';
+import type { Moment, HeroImage } from '../api';
 import type { User, Post, FamilyEvent } from '../types';
 import PostLightbox from '../components/PostLightbox';
 import toast from 'react-hot-toast';
 import './Admin.css';
 import './Login.css';
 
-type Tab = 'overview' | 'members' | 'posts' | 'moments' | 'events';
+type Tab = 'overview' | 'members' | 'posts' | 'moments' | 'events' | 'hero';
 
 interface Stats {
   totalMembers: number;
@@ -597,6 +598,133 @@ function ManageEvents() {
   );
 }
 
+// ─── Manage Hero Carousel Images ─────────────────────────
+function ManageHeroImages() {
+  const [images, setImages] = useState<HeroImage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    apiGetHeroImages()
+      .then(res => setImages(res.data))
+      .catch(() => toast.error('Failed to load hero images'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const compressed = await compressImage(file);
+      const fd = new FormData();
+      fd.append('image', compressed);
+
+      const res = await apiAdminUploadHeroImage(fd);
+      setImages(prev => [res.data, ...prev]);
+      toast.success('Hero image uploaded successfully!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to upload hero image');
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this hero image?')) return;
+    setDeletingId(id);
+    try {
+      await apiAdminDeleteHeroImage(id);
+      setImages(prev => prev.filter(img => img._id !== id));
+      toast.success('Hero image deleted');
+    } catch {
+      toast.error('Failed to delete hero image');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (loading) return <div className="admin-loading"><div className="spinner" /></div>;
+
+  return (
+    <div className="admin-view animate-fade-in">
+      <div className="admin-view-header">
+        <div>
+          <h2 className="admin-view-title">Hero Carousel Images</h2>
+          <p className="admin-view-subtitle">Manage images displayed in the home page header slideshow</p>
+        </div>
+        <button 
+          className="btn btn-primary" 
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+        >
+          {uploading ? (
+            <>
+              <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+              Uploading...
+            </>
+          ) : (
+            <>
+              <Upload size={18} /> Upload Image
+            </>
+          )}
+        </button>
+        <input 
+          ref={fileRef} 
+          type="file" 
+          accept="image/*" 
+          style={{ display: 'none' }} 
+          onChange={handleUpload} 
+        />
+      </div>
+
+      {images.length === 0 ? (
+        <div className="admin-empty-state">
+          <Image size={48} style={{ margin: '0 auto 12px', opacity: 0.35 }} />
+          <p style={{ fontWeight: 600, color: 'var(--color-text)' }}>No custom hero images</p>
+          <p style={{ fontSize: 14, marginTop: 4, color: 'var(--color-text-2)' }}>
+            The website is currently showing default static images. Upload one above to customize it!
+          </p>
+        </div>
+      ) : (
+        <div className="admin-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 250px), 1fr))', gap: 20 }}>
+          {images.map(img => (
+            <div key={img._id} className="admin-card" style={{ padding: 0, overflow: 'hidden', position: 'relative' }}>
+              <img 
+                src={img.url} 
+                alt="Hero Slide" 
+                style={{ width: '100%', height: 160, objectFit: 'cover' }} 
+              />
+              <div style={{ padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-surface-2)' }}>
+                <span style={{ fontSize: 12, color: 'var(--color-text-2)' }}>
+                  Uploaded {new Date(img.createdAt).toLocaleDateString()}
+                </span>
+                <button 
+                  className="btn btn-danger btn-sm" 
+                  onClick={() => handleDelete(img._id)}
+                  disabled={deletingId === img._id}
+                  style={{ padding: 6 }}
+                >
+                  {deletingId === img._id ? (
+                    <div className="spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
+                  ) : (
+                    <Trash2 size={14} />
+                  )}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Admin() {
 
   const { user, loading: authLoading, logout } = useAuth();
@@ -606,7 +734,7 @@ export default function Admin() {
   // Extract tab from URL path (e.g. /admin/members -> members)
   const pathParts = location.pathname.split('/').filter(Boolean);
   const currentTabFromUrl = pathParts[1] as Tab;
-  const validTabs: Tab[] = ['overview', 'members', 'posts', 'moments', 'events'];
+  const validTabs: Tab[] = ['overview', 'members', 'posts', 'moments', 'events', 'hero'];
   const tab = validTabs.includes(currentTabFromUrl) ? currentTabFromUrl : 'overview';
 
   useEffect(() => {
@@ -783,6 +911,9 @@ export default function Admin() {
             </button>
             <button className={`admin-nav-item ${tab === 'events' ? 'active' : ''}`} onClick={() => handleNav('events')}>
               <Calendar size={18} /> Events
+            </button>
+            <button className={`admin-nav-item ${tab === 'hero' ? 'active' : ''}`} onClick={() => handleNav('hero')}>
+              <Image size={18} /> Hero Carousel
             </button>
           </nav>
         </div>
@@ -1175,6 +1306,7 @@ export default function Admin() {
           </div>
         )}
         {tab === 'events' && <ManageEvents />}
+        {tab === 'hero' && <ManageHeroImages />}
       </main>
 
       {/* Modals */}

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FlipText } from '../components/ui/flip-text';
-import { Users, Globe, Heart, TreePine, Home as HomeIcon, Star, Sparkles, MapPin, Baby, History, Camera, Network, ChevronLeft, ChevronRight, Plus, ArrowLeft, Grid, Image, Video } from 'lucide-react';
+import { Users, Globe, Heart, TreePine, Home as HomeIcon, Star, Sparkles, MapPin, Baby, History, Camera, Network, ChevronLeft, ChevronRight, Plus, ArrowLeft, Grid, Image, Video, MessageCircle } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
-import { apiGetMembers, apiGetFeed, apiCreatePost } from '../api';
+import { apiGetMembers, apiGetFeed, apiCreatePost, apiGetHeroImages } from '../api';
 import type { User, Post } from '../types';
 import DomeGallery from '../components/ui/DomeGallery';
 import type { DomeGalleryImage } from '../components/ui/DomeGallery';
@@ -461,6 +461,31 @@ function EraCard({ era, index, total }: { era: typeof eras[0]; index: number; to
 // ─── Home Page ────────────────────────────────────────────
 export default function Home() {
   const navigate = useNavigate();
+
+  const defaultSlides = [
+    { id: 'default1', bg: `url(${img1}) center / cover no-repeat` },
+    { id: 'default2', bg: `url(${img2}) center / cover no-repeat` },
+    { id: 'default3', bg: `url(${img3}) center / cover no-repeat` },
+  ];
+
+  const [activeSlides, setActiveSlides] = useState<{ id: string | number; bg: string }[]>(defaultSlides);
+
+  // Fetch hero images
+  useEffect(() => {
+    apiGetHeroImages()
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          const dynamicSlides = res.data.map((item) => ({
+            id: item._id,
+            bg: `url(${item.url}) center / cover no-repeat`
+          }));
+          setActiveSlides(dynamicSlides);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load hero images', err);
+      });
+  }, []);
   const [slide, setSlide] = useState(1); // Start at index 1 (the first real slide)
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -552,9 +577,9 @@ export default function Home() {
 
   // Extended slides for infinite loop: [Last, Slide 1, Slide 2, Slide 3, First]
   const extendedSlides = [
-    slides[slides.length - 1],
-    ...slides,
-    slides[0],
+    activeSlides[activeSlides.length - 1],
+    ...activeSlides,
+    activeSlides[0],
   ];
 
   // Tab visibility detection to pause auto-play and prevent background state desync
@@ -573,14 +598,14 @@ export default function Home() {
     const timer = setTimeout(() => {
       setIsTransitioning(false);
       setSlide((s) => {
-        if (s >= slides.length + 1) return 1;
-        if (s <= 0) return slides.length;
+        if (s >= activeSlides.length + 1) return 1;
+        if (s <= 0) return activeSlides.length;
         return s;
       });
     }, 500); // Match transition duration (0.5s)
 
     return () => clearTimeout(timer);
-  }, [isTransitioning]);
+  }, [isTransitioning, activeSlides]);
 
   // Touch & Mouse swipe gesture support
   const handleStart = (clientX: number) => {
@@ -698,6 +723,13 @@ export default function Home() {
           <SparkleIcon style={{ top: '-15px', right: '20%', width: '24px', height: '24px', animationDelay: '1.2s', animationDuration: '1.8s' }} />
           <FlipText duration={2.2} delay={0}>Baldaniya</FlipText>
         </h1>
+        <button 
+          className="home-title-bar-msg" 
+          onClick={() => navigate('/messages')}
+          aria-label="Messages"
+        >
+          <MessageCircle size={26} strokeWidth={2.2} />
+        </button>
       </div>
 
       {/* ── Member Stories Section ───────────────────── */}
@@ -794,10 +826,10 @@ export default function Home() {
           ))}
         </div>
         <div className="hero-dots">
-          {slides.map((_, i) => {
+          {activeSlides.map((_, i) => {
             let dotActiveIndex = slide - 1;
-            if (slide >= slides.length + 1) dotActiveIndex = 0;
-            if (slide <= 0) dotActiveIndex = slides.length - 1;
+            if (slide >= activeSlides.length + 1) dotActiveIndex = 0;
+            if (slide <= 0) dotActiveIndex = activeSlides.length - 1;
 
             return (
               <button

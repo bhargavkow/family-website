@@ -125,3 +125,16 @@ export const apiCreateEvent = (data: FormData) =>
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 export const apiDeleteEvent = (id: string) => client.delete(`/events/${id}`);
+
+// ─── Hero Images ──────────────────────────────────────────
+export interface HeroImage {
+  _id: string;
+  url: string;
+  publicId: string;
+  createdAt: string;
+}
+
+export const apiGetHeroImages = () => client.get<HeroImage[]>('/hero');
+export const apiAdminUploadHeroImage = (data: FormData) =>
+  client.post<HeroImage>('/hero', data, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const apiAdminDeleteHeroImage = (id: string) => client.delete(`/hero/${id}`);
