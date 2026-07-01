@@ -15,8 +15,10 @@ const getBaseURL = () => {
   }
 
   // 2. If running in production mode
-  // If VITE_API_URL is configured, use it (e.g. EC2/ECS/Elastic Beanstalk/Render URL)
-  if (envUrl) {
+  // If VITE_API_URL is configured and secure (https://), use it.
+  // If it is insecure (http://), it will cause Mixed Content errors on Vercel HTTPS,
+  // so we ignore it and fall back to proxying via '/api'.
+  if (envUrl && envUrl.startsWith('https://')) {
     return envUrl;
   }
 
