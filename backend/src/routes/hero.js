@@ -6,7 +6,7 @@ const cloudinary = require('../config/cloudinary');
 
 const router = express.Router();
 
-// GET /api/hero - Public
+// GET /api/hero - Public ok
 router.get('/', async (req, res) => {
   try {
     const images = await HeroImage.find().sort({ createdAt: -1 });
