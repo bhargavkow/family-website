@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import './Home.css';
 
-// ─── Image Compression Helper ─────────────────────────────
+// ─── Image Compression Helper ────────────────────────────
 function compressImage(file: File): Promise<Blob | File> {
   return new Promise((resolve) => {
     if (!file.type.startsWith('image/')) {
