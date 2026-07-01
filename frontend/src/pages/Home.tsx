@@ -326,7 +326,7 @@ import img1 from '../assets/_MG_1369.JPG';
 import img2 from '../assets/_MG_1381.JPG';
 import img3 from '../assets/_MG_1506.JPG';
 
-// ─── Story Timeline Data ───────────────────────────────────
+// ─── Story Timeline Data ──────────────────────────────
 const eras = [
   {
     year: '1920s',
